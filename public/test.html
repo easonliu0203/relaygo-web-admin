@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司端前端 API 測試</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1890ff;
+            border-bottom: 2px solid #1890ff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #1890ff;
+        }
+        .success {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        .error {
+            color: #f5222d;
+            font-weight: bold;
+        }
+        .info {
+            color: #1890ff;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .log {
+            margin: 10px 0;
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 公司端前端 API 測試工具</h1>
+        <p class="info">此工具用於測試公司端前端頁面的 API 調用是否正常工作</p>
+
+        <div class="test-section">
+            <h2>測試 1: 獲取客戶列表</h2>
+            <button onclick="testGetCustomers()">測試獲取客戶</button>
+            <div id="customers-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>測試 2: 獲取司機列表</h2>
+            <button onclick="testGetDrivers()">測試獲取司機</button>
+            <div id="drivers-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>測試 3: 獲取訂單列表</h2>
+            <button onclick="testGetBookings()">測試獲取訂單</button>
+            <div id="bookings-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>測試日誌</h2>
+            <button onclick="clearLogs()">清除日誌</button>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3001';
+
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+            logsDiv.insertBefore(logEntry, logsDiv.firstChild);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testGetCustomers() {
+            const resultDiv = document.getElementById('customers-result');
+            resultDiv.innerHTML = '<p>測試中...</p>';
+            log('開始測試獲取客戶列表', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/customers`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                log(`響應狀態: ${response.status}`, response.ok ? 'success' : 'error');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log(`成功獲取 ${data.data?.length || 0} 位客戶`, 'success');
+
+                // 檢查是否有測試帳號
+                const testCustomer = data.data?.find(c => c.email === 'customer.test@relaygo.com');
+                if (testCustomer) {
+                    log(`✅ 找到測試帳號: ${testCustomer.name} (${testCustomer.email})`, 'success');
+                } else {
+                    log('⚠️ 未找到測試帳號', 'error');
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="success">✅ 測試成功</p>
+                    <p>總數: ${data.total || 0}</p>
+                    <p>返回數量: ${data.data?.length || 0}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`❌ 測試失敗: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <p class="error">❌ 測試失敗</p>
+                    <p>錯誤訊息: ${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+
+        async function testGetDrivers() {
+            const resultDiv = document.getElementById('drivers-result');
+            resultDiv.innerHTML = '<p>測試中...</p>';
+            log('開始測試獲取司機列表', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/drivers`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                log(`響應狀態: ${response.status}`, response.ok ? 'success' : 'error');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log(`成功獲取 ${data.data?.length || 0} 位司機`, 'success');
+
+                // 檢查是否有測試帳號
+                const testDriver = data.data?.find(d => d.email === 'driver.test@relaygo.com');
+                if (testDriver) {
+                    log(`✅ 找到測試帳號: ${testDriver.name} (${testDriver.email})`, 'success');
+                } else {
+                    log('⚠️ 未找到測試帳號', 'error');
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="success">✅ 測試成功</p>
+                    <p>總數: ${data.total || 0}</p>
+                    <p>返回數量: ${data.data?.length || 0}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`❌ 測試失敗: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <p class="error">❌ 測試失敗</p>
+                    <p>錯誤訊息: ${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+
+        async function testGetBookings() {
+            const resultDiv = document.getElementById('bookings-result');
+            resultDiv.innerHTML = '<p>測試中...</p>';
+            log('開始測試獲取訂單列表', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/bookings`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                log(`響應狀態: ${response.status}`, response.ok ? 'success' : 'error');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log(`成功獲取 ${data.data?.length || 0} 筆訂單`, 'success');
+
+                resultDiv.innerHTML = `
+                    <p class="success">✅ 測試成功</p>
+                    <p>總數: ${data.total || 0}</p>
+                    <p>返回數量: ${data.data?.length || 0}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`❌ 測試失敗: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <p class="error">❌ 測試失敗</p>
+                    <p>錯誤訊息: ${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+
+        // 頁面載入時顯示歡迎訊息
+        window.onload = function() {
+            log('測試工具已就緒', 'success');
+            log(`API 基礎 URL: ${API_BASE_URL}`, 'info');
+        };
+    </script>
+</body>
+</html>
+
