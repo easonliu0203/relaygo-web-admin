@@ -11,3 +11,5 @@ export const supabase = createClient(url, anonKey, {
 
 // 需要時可匯出型別
 export type SupabaseClient = typeof supabase;
+
+export { supabase as DatabaseService };
