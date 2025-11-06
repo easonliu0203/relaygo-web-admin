@@ -87,8 +87,8 @@ export async function GET(request: NextRequest) {
     console.log(`✅ 成功獲取 ${bookings?.length || 0} 筆訂單 (總計: ${count})`);
 
     // 獲取所有相關的用戶 ID
-    const customerIds = [...new Set(bookings?.map(b => b.customer_id).filter(Boolean))];
-    const driverIds = [...new Set(bookings?.map(b => b.driver_id).filter(Boolean))];
+    const customerIds = [...new Set(bookings?.map((b: any) => b.customer_id).filter(Boolean))];
+    const driverIds = [...new Set(bookings?.map((b: any) => b.driver_id).filter(Boolean))];
     const allUserIds = [...new Set([...customerIds, ...driverIds])];
 
     // 查詢所有用戶的 profiles
@@ -111,22 +111,22 @@ export async function GET(request: NextRequest) {
 
     // 創建映射
     const profileMap = new Map();
-    profiles?.forEach(p => {
+    profiles?.forEach((p: any) => {
       profileMap.set(p.user_id, p);
     });
 
     const driverInfoMap = new Map();
-    driverInfos?.forEach(d => {
+    driverInfos?.forEach((d: any) => {
       driverInfoMap.set(d.user_id, d);
     });
 
     const userMap = new Map();
-    users?.forEach(u => {
+    users?.forEach((u: any) => {
       userMap.set(u.id, u);
     });
 
     // 格式化訂單資料
-    const formattedBookings = (bookings || []).map(booking => {
+    const formattedBookings = (bookings || []).map((booking: any) => {
       // 獲取客戶資訊
       const customer = userMap.get(booking.customer_id);
       const customerProfile = profileMap.get(booking.customer_id);

@@ -123,12 +123,12 @@ export async function GET(request: NextRequest) {
       }
 
       const displayName = VEHICLE_DISPLAY_NAMES[clientVehicleType];
-      const features = [...VEHICLE_FEATURES[clientVehicleType]];
+      const baseFeatures = [...VEHICLE_FEATURES[clientVehicleType]] as string[];
 
       // 8小時方案添加長時間優惠標籤
-      if (pricing.duration_hours >= 8) {
-        features.push('長時間包車優惠');
-      }
+      const features = pricing.duration_hours >= 8
+        ? [...baseFeatures, '長時間包車優惠']
+        : baseFeatures;
 
       packagesMap.set(packageKey, {
         id: packageKey,

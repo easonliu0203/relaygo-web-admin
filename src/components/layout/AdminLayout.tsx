@@ -148,7 +148,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: '帳號設定',
       onClick: () => router.push('/account-settings'),
     },
-    { type: 'divider' },
+    { type: 'divider' as const },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -164,8 +164,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: '查看所有通知',
       onClick: () => router.push('/notifications'),
     },
-    { type: 'divider' },
-    ...notifications.slice(0, 5).map((notif) => ({
+    { type: 'divider' as const },
+    ...notifications.slice(0, 5).map((notif: any) => ({
       key: notif.id,
       label: (
         <div className="max-w-xs">

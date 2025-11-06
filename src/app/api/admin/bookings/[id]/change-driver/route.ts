@@ -172,7 +172,7 @@ export async function PUT(
       console.error('❌ 檢查衝突失敗:', conflictError);
     } else if (existingBookings && existingBookings.length > 0) {
       // 檢查時間衝突
-      const hasConflict = existingBookings.some(existingBooking => {
+      const hasConflict = existingBookings.some((existingBooking: any) => {
         const [existingHours, existingMinutes] = existingBooking.start_time.split(':').map(Number);
         const existingStartMinutes = existingHours * 60 + existingMinutes;
         const existingEndMinutes = existingStartMinutes + (existingBooking.duration_hours * 60);

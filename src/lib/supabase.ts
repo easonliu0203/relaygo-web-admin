@@ -290,10 +290,10 @@ export class DatabaseService {
       this.client.from(TABLES.PAYMENTS).select('amount').eq('status', 'completed'),
     ]);
 
-    const totalRevenue = revenueResult.data?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-    const todayRevenue = revenueResult.data?.filter(payment => 
+    const totalRevenue = revenueResult.data?.reduce((sum: any, payment: any) => sum + payment.amount, 0) || 0;
+    const todayRevenue = revenueResult.data?.filter((payment: any) =>
       payment.created_at?.startsWith(today)
-    ).reduce((sum, payment) => sum + payment.amount, 0) || 0;
+    ).reduce((sum: any, payment: any) => sum + payment.amount, 0) || 0;
 
     return {
       totalBookings: totalBookingsResult.count || 0,

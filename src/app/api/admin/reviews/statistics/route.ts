@@ -209,13 +209,13 @@ export async function GET(request: NextRequest) {
         },
         ratingDistribution,
         ratingTrend,
-        topDrivers: topDrivers?.map((driver) => ({
+        topDrivers: topDrivers?.map((driver: any) => ({
           driverId: driver.user_id,
           driverName: driver.user?.display_name || driver.user?.email || 'Unknown',
           totalReviews: driver.total_reviews,
           averageRating: parseFloat(driver.average_rating) || 0,
         })),
-        topRatedDrivers: topRatedDrivers?.map((driver) => ({
+        topRatedDrivers: topRatedDrivers?.map((driver: any) => ({
           driverId: driver.user_id,
           driverName: driver.user?.display_name || driver.user?.email || 'Unknown',
           totalReviews: driver.total_reviews,

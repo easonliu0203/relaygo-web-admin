@@ -77,7 +77,7 @@ export function useRealtimeBookings(initialBookings: RealtimeBooking[] = []) {
           schema: 'public',
           table: 'bookings',
         },
-        (payload) => {
+        (payload: any) => {
           console.log('📡 Realtime 收到訂單變更:', payload);
 
           if (payload.eventType === 'INSERT') {
@@ -115,7 +115,7 @@ export function useRealtimeBookings(initialBookings: RealtimeBooking[] = []) {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         console.log('📡 Realtime 連接狀態:', status);
         setIsConnected(status === 'SUBSCRIBED');
       });

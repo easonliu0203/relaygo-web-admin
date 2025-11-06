@@ -70,10 +70,10 @@ export async function GET(
 
     // 計算統計資料
     const totalTrips = bookings?.length || 0;
-    const completedTrips = bookings?.filter(b => b.status === 'completed').length || 0;
+    const completedTrips = bookings?.filter((b: any) => b.status === 'completed').length || 0;
     const totalRevenue = bookings
-      ?.filter(b => b.status === 'completed')
-      .reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
+      ?.filter((b: any) => b.status === 'completed')
+      .reduce((sum: number, b: any) => sum + (b.total_amount || 0), 0) || 0;
 
     // 格式化司機詳情
     const formattedDriver = {
@@ -115,7 +115,7 @@ export async function GET(
       joinedDate: driverInfo?.created_at || user.created_at,
 
       // 最近訂單
-      recentBookings: bookings?.slice(0, 5).map(b => ({
+      recentBookings: bookings?.slice(0, 5).map((b: any) => ({
         id: b.id,
         status: b.status,
         amount: b.total_amount,

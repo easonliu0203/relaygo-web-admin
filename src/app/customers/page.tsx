@@ -109,7 +109,7 @@ export default function CustomersPage() {
     {
       title: '客戶資訊',
       key: 'customer',
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <div className="flex items-center space-x-3">
           <Avatar size={40} src={record.avatar}>
             {record.name.charAt(0)}
@@ -127,7 +127,7 @@ export default function CustomersPage() {
     {
       title: '聯絡方式',
       key: 'contact',
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <div>
           <div className="flex items-center text-sm">
             <MailOutlined className="mr-1" />
@@ -145,7 +145,7 @@ export default function CustomersPage() {
     {
       title: '訂單統計',
       key: 'orders',
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <div className="text-center">
           <div className="font-medium">{record.totalOrders}</div>
           <div className="text-gray-500 text-xs">筆訂單</div>
@@ -155,7 +155,7 @@ export default function CustomersPage() {
     {
       title: '消費金額',
       key: 'spent',
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <div className="text-center">
           <div className="font-medium">NT$ {record.totalSpent.toLocaleString()}</div>
           <div className="text-gray-500 text-xs">總消費</div>
@@ -182,7 +182,7 @@ export default function CustomersPage() {
     {
       title: '操作',
       key: 'action',
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button

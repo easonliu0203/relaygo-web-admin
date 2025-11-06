@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 過濾可用司機
-    const availableDrivers = (drivers || []).filter(driver => {
+    const availableDrivers = (drivers || []).filter((driver: any) => {
       const driverInfo = driver.drivers?.[0] || driver.drivers;
       return driverInfo && driverInfo.is_available;
     });
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     const driverBookingCounts = new Map<string, number>();
     const driverBookingsByDate = new Map<string, any[]>();
 
-    (existingBookings || []).forEach(booking => {
+    (existingBookings || []).forEach((booking: any) => {
       if (booking.driver_id) {
         // 統計總數
         driverBookingCounts.set(
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     for (const booking of bookings) {
       try {
         // 找到符合車型的司機
-        const matchingDrivers = availableDrivers.filter(driver => {
+        const matchingDrivers = availableDrivers.filter((driver: any) => {
           const driverInfo = driver.drivers?.[0] || driver.drivers;
           return driverInfo && driverInfo.vehicle_type === booking.vehicle_type;
         });
