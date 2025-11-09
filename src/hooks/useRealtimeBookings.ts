@@ -115,9 +115,32 @@ export function useRealtimeBookings(initialBookings: RealtimeBooking[] = []) {
           }
         }
       )
-      .subscribe((status: any) => {
+      .subscribe((status: any, err: any) => {
         console.log('📡 Realtime 連接狀態:', status);
-        setIsConnected(status === 'SUBSCRIBED');
+
+        if (err) {
+          console.error('❌ Realtime 連接錯誤:', err);
+        }
+
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Realtime 連接成功');
+          setIsConnected(true);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Realtime 頻道錯誤 - 這可能是因為:');
+          console.error('   1. Supabase Realtime 未啟用');
+          console.error('   2. bookings 表的 Replication 未啟用');
+          console.error('   3. RLS 策略阻止了訂閱');
+          console.error('   請檢查 Supabase Dashboard → Database → Replication');
+          setIsConnected(false);
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ Realtime 連接超時');
+          setIsConnected(false);
+        } else if (status === 'CLOSED') {
+          console.log('🔌 Realtime 連接已關閉');
+          setIsConnected(false);
+        } else {
+          setIsConnected(false);
+        }
       });
 
     // 清理函數

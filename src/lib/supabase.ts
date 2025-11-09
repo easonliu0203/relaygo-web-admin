@@ -20,6 +20,16 @@ try {
       persistSession: true,
       autoRefreshToken: true,
     },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+    global: {
+      headers: {
+        'x-client-info': 'web-admin',
+      },
+    },
   });
 } catch (error) {
   console.warn('無法建立 Supabase 客戶端實例:', error);
@@ -31,6 +41,10 @@ try {
       update: () => ({ data: [], error: null }),
       delete: () => ({ data: [], error: null }),
     }),
+    channel: () => ({
+      on: () => ({ subscribe: () => {} }),
+    }),
+    removeChannel: () => {},
   };
 }
 
