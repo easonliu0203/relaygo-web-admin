@@ -94,9 +94,25 @@ export async function GET(request: NextRequest) {
       }
 
       // 如果指定了車型，檢查車型是否匹配
-      if (vehicleType && driverInfo.vehicle_type !== vehicleType) {
-        console.log(`⚠️ 司機 ${driver.email} 車型不匹配 (需要: ${vehicleType}, 實際: ${driverInfo.vehicle_type})`);  // ✅ 添加日誌
-        return false;
+      if (vehicleType) {
+        // 車型映射：A/B -> large, C/D -> small
+        const vehicleTypeMap: Record<string, string> = {
+          'A': 'large',
+          'B': 'large',
+          'C': 'small',
+          'D': 'small',
+          'large': 'large',
+          'small': 'small'
+        };
+
+        const mappedVehicleType = vehicleTypeMap[vehicleType] || vehicleType;
+
+        if (driverInfo.vehicle_type !== mappedVehicleType) {
+          console.log(`⚠️ 司機 ${driver.email} 車型不匹配 (需要: ${vehicleType} -> ${mappedVehicleType}, 實際: ${driverInfo.vehicle_type})`);
+          return false;
+        }
+
+        console.log(`✅ 司機 ${driver.email} 車型匹配 (需要: ${vehicleType} -> ${mappedVehicleType}, 實際: ${driverInfo.vehicle_type})`);
       }
 
       console.log(`✅ 司機 ${driver.email} 可用`);  // ✅ 添加日誌
