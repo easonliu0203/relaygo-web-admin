@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/admin/auto-dispatch/process",
+      "schedule": "*/1 * * * *"
+    }
+  ]
+}
+

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Tag, Input, Row, Col, Statistic, Space, Tooltip, Alert, message, Modal } from 'antd';
+import { Card, Table, Button, Tag, Input, Row, Col, Statistic, Space, Tooltip, Alert, message, Modal, Switch } from 'antd';
 import {
   ClockCircleOutlined,
   SearchOutlined,
@@ -13,6 +13,7 @@ import {
   ThunderboltOutlined,
   SwapOutlined,
   WifiOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -44,6 +45,10 @@ export default function PendingOrdersPage() {
   const [assigningDriver, setAssigningDriver] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
   const [isChangingDriver, setIsChangingDriver] = useState(false); // 是否為更改司機模式
+
+  // 24/7 自動派單開關
+  const [autoDispatch24x7Enabled, setAutoDispatch24x7Enabled] = useState(false);
+  const [loadingAutoDispatch24x7, setLoadingAutoDispatch24x7] = useState(false);
 
   // 取消訂單對話框
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
@@ -85,8 +90,48 @@ export default function PendingOrdersPage() {
     }
   };
 
+  // 載入 24/7 自動派單開關狀態
+  const loadAutoDispatch24x7Status = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/auto-dispatch-24-7');
+      const data = await response.json();
+
+      if (data.success) {
+        setAutoDispatch24x7Enabled(data.data?.enabled || false);
+      }
+    } catch (error) {
+      console.error('❌ 載入 24/7 自動派單狀態失敗:', error);
+    }
+  };
+
+  // 更新 24/7 自動派單開關狀態
+  const handleAutoDispatch24x7Toggle = async (checked: boolean) => {
+    setLoadingAutoDispatch24x7(true);
+    try {
+      const response = await fetch('/api/admin/settings/auto-dispatch-24-7', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: checked }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setAutoDispatch24x7Enabled(checked);
+        message.success(data.message || `24/7 自動派單已${checked ? '開啟' : '關閉'}`);
+      } else {
+        message.error(data.error || '更新失敗');
+      }
+    } catch (error) {
+      console.error('❌ 更新 24/7 自動派單狀態失敗:', error);
+      message.error('更新失敗');
+    } finally {
+      setLoadingAutoDispatch24x7(false);
+    }
+  };
+
   useEffect(() => {
     loadOrders(); // 只在頁面載入時執行一次，之後由 Realtime 自動更新
+    loadAutoDispatch24x7Status(); // 載入 24/7 自動派單開關狀態
   }, []);
 
   // 手動派單 - 打開司機選擇對話框
@@ -536,7 +581,20 @@ export default function PendingOrdersPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
+          {/* 24/7 自動派單開關 */}
+          <div className="flex items-center space-x-2 px-3 py-1 bg-gray-50 rounded-lg border border-gray-200">
+            <RobotOutlined className={autoDispatch24x7Enabled ? 'text-green-500' : 'text-gray-400'} />
+            <span className="text-sm font-medium">24/7 自動派單:</span>
+            <Switch
+              checked={autoDispatch24x7Enabled}
+              onChange={handleAutoDispatch24x7Toggle}
+              loading={loadingAutoDispatch24x7}
+              checkedChildren="運行中"
+              unCheckedChildren="關閉"
+            />
+          </div>
+
           <Button
             type="primary"
             icon={<ThunderboltOutlined />}
