@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '價格計算失敗' 
+        message: (error as any).message || '價格計算失敗' 
       },
       { status: 500 }
     );

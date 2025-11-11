@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '登入失敗，請稍後再試' 
+        message: (error as any).message || '登入失敗，請稍後再試' 
       },
       { status: 401 }
     );

@@ -110,11 +110,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 轉換資料庫格式為客戶端格式
-    const packages: VehiclePackage[] = pricingData.map((pricing: VehiclePricing) => {
+    const packages: VehiclePackage[] = pricingData.map((pricing: any) => {
       const clientVehicleType = VEHICLE_TYPE_MAPPING[pricing.vehicle_type as keyof typeof VEHICLE_TYPE_MAPPING];
       const displayName = VEHICLE_DISPLAY_NAMES[clientVehicleType];
-      const features = [...VEHICLE_FEATURES[clientVehicleType]];
-      
+      const features = [...VEHICLE_FEATURES[clientVehicleType]] as string[];
+
       // 8小時方案添加長時間優惠標籤
       if (pricing.duration_hours >= 8) {
         features.push('長時間包車優惠');

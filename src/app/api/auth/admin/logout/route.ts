@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '登出失敗' 
+        message: (error as any).message || '登出失敗' 
       },
       { status: 500 }
     );

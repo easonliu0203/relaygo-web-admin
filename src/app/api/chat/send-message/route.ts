@@ -12,7 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '@/lib/database';
+import { DatabaseService } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
       {
         success: false,
         error: '伺服器錯誤',
-        details: error.message,
+        details: (error as any).message,
       },
       { status: 500 }
     );

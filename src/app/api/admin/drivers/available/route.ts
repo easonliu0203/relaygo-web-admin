@@ -202,20 +202,20 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. 排序：無衝突的在前，按當前訂單數量排序
-    driversWithConflicts.sort((a, b) => {
+    driversWithConflicts.sort((a: any, b: any) => {
       if (a.hasConflict !== b.hasConflict) {
         return a.hasConflict ? 1 : -1; // 無衝突的在前
       }
       return a.currentBookings - b.currentBookings; // 訂單少的在前
     });
 
-    console.log(`✅ 找到 ${driversWithConflicts.length} 位可用司機 (${driversWithConflicts.filter(d => !d.hasConflict).length} 位無衝突)`);
+    console.log(`✅ 找到 ${driversWithConflicts.length} 位可用司機 (${driversWithConflicts.filter((d: any) => !d.hasConflict).length} 位無衝突)`);
 
     return NextResponse.json({
       success: true,
       data: driversWithConflicts,
       total: driversWithConflicts.length,
-      availableCount: driversWithConflicts.filter(d => !d.hasConflict).length,
+      availableCount: driversWithConflicts.filter((d: any) => !d.hasConflict).length,
     });
 
   } catch (error) {

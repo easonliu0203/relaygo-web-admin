@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '@/lib/database';
+import { DatabaseService } from '@/lib/supabase';
 
 export async function GET(req: NextRequest) {
   try {
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
 
     // 6. 獲取所有相關用戶的 ID
     const userIds = new Set<string>();
-    bookings.forEach(booking => {
+    bookings.forEach((booking: any) => {
       userIds.add(booking.customer_id);
       if (booking.driver_id) {
         userIds.add(booking.driver_id);
@@ -117,14 +117,14 @@ export async function GET(req: NextRequest) {
 
     // 8. 創建用戶映射
     const userMap = new Map();
-    users?.forEach(u => userMap.set(u.id, u));
+    users?.forEach((u: any) => userMap.set(u.id, u));
 
     const profileMap = new Map();
-    profiles?.forEach(p => profileMap.set(p.user_id, p));
+    profiles?.forEach((p: any) => profileMap.set(p.user_id, p));
 
     // 9. 為每個訂單獲取最後一則訊息和未讀數量
     const chatRooms = await Promise.all(
-      bookings.map(async (booking) => {
+      bookings.map(async (booking: any) => {
         // 獲取最後一則訊息
         const { data: lastMessage } = await db.supabase
           .from('chat_messages')
@@ -185,7 +185,7 @@ export async function GET(req: NextRequest) {
       {
         success: false,
         error: '伺服器錯誤',
-        details: error.message,
+        details: (error as any).message,
       },
       { status: 500 }
     );

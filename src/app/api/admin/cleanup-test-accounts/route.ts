@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
 
       } catch (error: any) {
         console.error(`   ❌ 刪除帳號時發生錯誤:`, error);
-        result.errors.push(`刪除帳號時發生錯誤: ${error.message}`);
+        result.errors.push(`刪除帳號時發生錯誤: ${(error as any).message}`);
       }
 
       deleteResults.push(result);
@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
       { 
         success: false, 
         error: '清理過程中發生錯誤', 
-        details: error.message 
+        details: (error as any).message 
       },
       { status: 500 }
     );
@@ -303,7 +303,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       return NextResponse.json(
-        { success: false, error: '查詢用戶失敗', details: error.message },
+        { success: false, error: '查詢用戶失敗', details: (error as any).message },
         { status: 500 }
       );
     }
@@ -346,7 +346,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: '查詢失敗', details: error.message },
+      { success: false, error: '查詢失敗', details: (error as any).message },
       { status: 500 }
     );
   }

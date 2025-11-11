@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '切換即時同步失敗',
+        message: (error as any).message || '切換即時同步失敗',
         error: error.toString()
       },
       { status: 500 }

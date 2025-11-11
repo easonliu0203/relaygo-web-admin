@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     const averageRating =
       approvedReviews && approvedReviews.length > 0
-        ? approvedReviews.reduce((sum, r) => sum + r.rating, 0) / approvedReviews.length
+        ? approvedReviews.reduce((sum: number, r: any) => sum + r.rating, 0) / approvedReviews.length
         : 0;
 
     // 4. 查詢評分分布（僅已批准的評價）
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     };
 
     if (approvedReviews) {
-      approvedReviews.forEach((review) => {
+      approvedReviews.forEach((review: any) => {
         if (review.rating >= 1 && review.rating <= 5) {
           ratingDistribution[review.rating as keyof typeof ratingDistribution]++;
         }
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     > = {};
 
     if (recentReviews) {
-      recentReviews.forEach((review) => {
+      recentReviews.forEach((review: any) => {
         const date = review.created_at.split('T')[0];
         if (!dailyStats[date]) {
           dailyStats[date] = {
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
       });
 
       // 計算每日平均評分
-      Object.values(dailyStats).forEach((stat) => {
+      Object.values(dailyStats).forEach((stat: any) => {
         if (stat.approved > 0) {
           stat.averageRating = stat.averageRating / stat.approved;
         }
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
 
     let averageReviewTime = 0;
     if (reviewedReviews && reviewedReviews.length > 0) {
-      const totalTime = reviewedReviews.reduce((sum, review) => {
+      const totalTime = reviewedReviews.reduce((sum: number, review: any) => {
         const created = new Date(review.created_at).getTime();
         const reviewed = new Date(review.reviewed_at!).getTime();
         return sum + (reviewed - created);
@@ -201,10 +201,10 @@ export async function GET(request: NextRequest) {
         overview: {
           totalReviews: totalReviews || 0,
           averageRating: parseFloat(averageRating.toFixed(2)),
-          pendingReviews: statusCounts.find((s) => s.status === 'pending')?.count || 0,
-          approvedReviews: statusCounts.find((s) => s.status === 'approved')?.count || 0,
-          rejectedReviews: statusCounts.find((s) => s.status === 'rejected')?.count || 0,
-          hiddenReviews: statusCounts.find((s) => s.status === 'hidden')?.count || 0,
+          pendingReviews: statusCounts.find((s: any) => s.status === 'pending')?.count || 0,
+          approvedReviews: statusCounts.find((s: any) => s.status === 'approved')?.count || 0,
+          rejectedReviews: statusCounts.find((s: any) => s.status === 'rejected')?.count || 0,
+          hiddenReviews: statusCounts.find((s: any) => s.status === 'hidden')?.count || 0,
           averageReviewTimeHours: parseFloat(averageReviewTime.toFixed(2)),
         },
         ratingDistribution,

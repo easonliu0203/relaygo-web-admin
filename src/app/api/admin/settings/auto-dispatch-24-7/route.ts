@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         {
           success: false,
           error: '獲取配置失敗',
-          details: error.message
+          details: (error as any).message
         },
         { status: 500 }
       );
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest) {
         {
           success: false,
           error: '更新配置失敗',
-          details: error.message
+          details: (error as any).message
         },
         { status: 500 }
       );

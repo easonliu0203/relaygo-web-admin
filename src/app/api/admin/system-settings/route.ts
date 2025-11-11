@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '獲取系統設定失敗' 
+        message: (error as any).message || '獲取系統設定失敗' 
       },
       { status: 500 }
     );
@@ -68,7 +68,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '更新系統設定失敗' 
+        message: (error as any).message || '更新系統設定失敗' 
       },
       { status: 500 }
     );

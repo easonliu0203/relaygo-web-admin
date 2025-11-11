@@ -85,12 +85,12 @@ export async function GET(request: NextRequest) {
 
     // 創建映射
     const profileMap = new Map();
-    profiles?.forEach(p => {
+    profiles?.forEach((p: any) => {
       profileMap.set(p.user_id, p);
     });
 
     const driverMap = new Map();
-    driverInfos?.forEach(d => {
+    driverInfos?.forEach((d: any) => {
       driverMap.set(d.user_id, d);
     });
 
@@ -106,10 +106,10 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('❌ 查詢司機失敗:', error);
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '查詢司機失敗', 
-          details: error.message 
+          error: '查詢司機失敗',
+          details: (error as any).message
         },
         { status: 500 }
       );

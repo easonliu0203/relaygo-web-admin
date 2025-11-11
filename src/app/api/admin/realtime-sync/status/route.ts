@@ -85,13 +85,13 @@ export async function GET(request: NextRequest) {
 
     if (!outboxError && outboxStats) {
       const totalEvents = outboxStats.length;
-      const processedEvents = outboxStats.filter(e => e.processed_at !== null);
-      const errorEvents = outboxStats.filter(e => e.error_message !== null);
-      const pendingEvents = outboxStats.filter(e => e.processed_at === null);
+      const processedEvents = outboxStats.filter((e: any) => e.processed_at !== null);
+      const errorEvents = outboxStats.filter((e: any) => e.error_message !== null);
+      const pendingEvents = outboxStats.filter((e: any) => e.processed_at === null);
 
       // 計算平均延遲
       const delays = processedEvents
-        .map(e => {
+        .map((e: any) => {
           if (e.created_at && e.processed_at) {
             const created = new Date(e.created_at).getTime();
             const processed = new Date(e.processed_at).getTime();
@@ -99,10 +99,10 @@ export async function GET(request: NextRequest) {
           }
           return 0;
         })
-        .filter(d => d > 0);
+        .filter((d: any) => d > 0);
 
-      const avgDelay = delays.length > 0 
-        ? delays.reduce((a, b) => a + b, 0) / delays.length 
+      const avgDelay = delays.length > 0
+        ? delays.reduce((a: number, b: number) => a + b, 0) / delays.length
         : 0;
 
       stats = {
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '獲取即時同步狀態失敗',
+        message: (error as any).message || '獲取即時同步狀態失敗',
         error: error.toString()
       },
       { status: 500 }

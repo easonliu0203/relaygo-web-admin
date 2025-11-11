@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
         results.details.push({
           bookingId: booking.id,
           success: false,
-          reason: error instanceof Error ? error.message : '未知錯誤',
+          reason: error instanceof Error ? (error as any).message : '未知錯誤',
         });
       }
     }

@@ -283,7 +283,7 @@ export default function OrdersPage() {
       title: '客戶資訊',
       key: 'customer',
       width: 150,
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <div>
           <div>{record.customer?.name || '未知客戶'}</div>
           <div className="text-gray-500 text-sm">{record.customer?.phone || '無電話'}</div>
@@ -294,7 +294,7 @@ export default function OrdersPage() {
       title: '司機',
       key: 'driver',
       width: 150,
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         record.driver ? (
           <div>
             <div>{record.driver.name}</div>
@@ -316,7 +316,7 @@ export default function OrdersPage() {
       title: '路線',
       key: 'route',
       width: 200,
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <div className="text-sm">
           <div>起：{record.pickupLocation || '-'}</div>
           <div>迄：{record.dropoffLocation || '-'}</div>
@@ -348,7 +348,7 @@ export default function OrdersPage() {
         const dateB = `${b.scheduledDate} ${b.scheduledTime || '00:00'}`;
         return dayjs(dateA).unix() - dayjs(dateB).unix();
       },
-      render: (_, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
+      render: (_: any, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
     },
     {
       title: '狀態',
@@ -361,14 +361,14 @@ export default function OrdersPage() {
       title: '金額',
       key: 'amount',
       width: 120,
-      render: (_, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
+      render: (_: any, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
     },
     {
       title: '操作',
       key: 'action',
       width: 200,
       fixed: 'right' as const,
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button
@@ -493,7 +493,7 @@ export default function OrdersPage() {
           <Col xs={24} sm={8}>
             <RangePicker
               value={dateRange}
-              onChange={setDateRange}
+              onChange={(dates: any) => setDateRange(dates)}
               placeholder={['開始日期', '結束日期']}
               style={{ width: '100%' }}
             />
@@ -586,7 +586,7 @@ export default function OrdersPage() {
             {
               title: '狀態',
               key: 'status',
-              render: (_, record: any) => (
+              render: (_: any, record: any) => (
                 record.hasConflict ? (
                   <Tag color="red">時間衝突</Tag>
                 ) : (
@@ -597,7 +597,7 @@ export default function OrdersPage() {
             {
               title: '操作',
               key: 'action',
-              render: (_, record: any) => (
+              render: (_: any, record: any) => (
                 <Button
                   type="primary"
                   size="small"

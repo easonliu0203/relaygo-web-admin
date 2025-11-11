@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        message: error.message || '獲取統計資料失敗' 
+        message: (error as any).message || '獲取統計資料失敗' 
       },
       { status: 500 }
     );

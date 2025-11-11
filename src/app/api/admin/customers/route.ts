@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     // 創建 profile 映射
     const profileMap = new Map();
-    profiles?.forEach(p => {
+    profiles?.forEach((p: any) => {
       profileMap.set(p.user_id, p);
     });
 
@@ -91,10 +91,10 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('❌ 查詢客戶失敗:', error);
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '查詢客戶失敗', 
-          details: error.message 
+          error: '查詢客戶失敗',
+          details: (error as any).message
         },
         { status: 500 }
       );

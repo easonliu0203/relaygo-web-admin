@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('獲取訂單失敗:', error);
       return NextResponse.json(
-        { error: '獲取訂單失敗', details: error.message },
+        { error: '獲取訂單失敗', details: (error as any).message },
         { status: 500 }
       );
     }

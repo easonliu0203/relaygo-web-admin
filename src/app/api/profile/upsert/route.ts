@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('❌ 保存個人資料失敗:', {
         error,
-        message: error.message,
+        message: (error as any).message,
         details: error.details,
         hint: error.hint,
         code: error.code,
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: '保存個人資料失敗',
-          message: error.message,
+          message: (error as any).message,
           details: error.details,
           hint: error.hint,
         },
@@ -262,7 +262,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: '查詢個人資料失敗',
-          message: error.message,
+          message: (error as any).message,
         },
         { status: 500 }
       );

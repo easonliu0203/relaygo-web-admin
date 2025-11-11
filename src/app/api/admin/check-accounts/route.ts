@@ -24,7 +24,7 @@ export async function GET() {
 
     if (error) {
       return NextResponse.json(
-        { success: false, error: '查詢失敗', details: error.message },
+        { success: false, error: '查詢失敗', details: (error as any).message },
         { status: 500 }
       );
     }
@@ -117,15 +117,15 @@ export async function GET() {
       summary: {
         total: users?.length || 0,
         required: requiredAccounts.length,
-        existing: accountStatus.filter(a => a.exists).length,
-        missing: accountStatus.filter(a => !a.exists).length,
-        uidMismatch: accountStatus.filter(a => a.exists && !a.uidMatch).length
+        existing: accountStatus.filter((a: any) => a.exists).length,
+        missing: accountStatus.filter((a: any) => !a.exists).length,
+        uidMismatch: accountStatus.filter((a: any) => a.exists && !a.uidMatch).length
       }
     });
 
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: '查詢失敗', details: error.message },
+      { success: false, error: '查詢失敗', details: (error as any).message },
       { status: 500 }
     );
   }

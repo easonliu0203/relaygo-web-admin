@@ -134,10 +134,10 @@ export async function POST(request: NextRequest) {
     } else {
       console.log(`   ✅ 找到 ${allUsers?.length || 0} 個用戶帳號`);
 
-      allUsers?.forEach(user => {
+      allUsers?.forEach((user: any) => {
         const profile = user.user_profiles?.[0] || user.user_profiles;
-        const name = profile 
-          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
+        const name = profile
+          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
           : '未知';
         console.log(`      - ${name} (${user.email}) - UID: ${user.firebase_uid}`);
       });
@@ -151,10 +151,10 @@ export async function POST(request: NextRequest) {
       success: results.errors.length === 0,
       message: results.errors.length === 0 ? '修復完成' : '修復完成，但有錯誤',
       results,
-      verifiedUsers: allUsers?.map(u => {
+      verifiedUsers: allUsers?.map((u: any) => {
         const profile = u.user_profiles?.[0] || u.user_profiles;
-        const name = profile 
-          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
+        const name = profile
+          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
           : '未知';
         return {
           email: u.email,
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
       { 
         success: false, 
         error: '修復過程中發生錯誤', 
-        details: error.message 
+        details: (error as any).message 
       },
       { status: 500 }
     );

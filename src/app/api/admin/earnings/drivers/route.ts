@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
             success: false,
             error: 'DATABASE_ERROR',
             message: '資料庫查詢失敗',
-            details: error.message,
+            details: (error as any).message,
           },
           { status: 500 }
         );
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error: 'DATABASE_ERROR',
           message: '資料庫查詢失敗',
-          details: error.message,
+          details: (error as any).message,
         },
         { status: 500 }
       );
