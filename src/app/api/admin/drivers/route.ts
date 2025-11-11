@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 獲取所有用戶的 ID
-    const userIds = users?.map(u => u.id) || [];
+    const userIds = users?.map((u: any) => u.id) || [];
 
     // 查詢所有用戶的 profiles
     const { data: profiles, error: profileError } = await db.supabase
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 合併數據
-    const drivers = users?.map(user => ({
+    const drivers = users?.map((user: any) => ({
       ...user,
       user_profiles: profileMap.get(user.id) || null,
       drivers: driverMap.get(user.id) || null,
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 格式化司機資料
-    const formattedDrivers = filteredDrivers.map(driver => {
+    const formattedDrivers = filteredDrivers.map((driver: any) => {
       const profile = driver.user_profiles;
       const driverInfo = driver.drivers;
 

@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     console.log(`📋 找到 ${drivers?.length || 0} 位司機用戶`);  // ✅ 添加日誌
 
     // 2. 獲取所有司機的 ID
-    const driverIds = drivers?.map(d => d.id) || [];
+    const driverIds = drivers?.map((d: any) => d.id) || [];
 
     // 3. 分別查詢 profiles 和 drivers 資料
     const { data: profiles } = await db.supabase
@@ -65,13 +65,13 @@ export async function GET(request: NextRequest) {
 
     // 4. 創建映射
     const profileMap = new Map();
-    profiles?.forEach(p => profileMap.set(p.user_id, p));
+    profiles?.forEach((p: any) => profileMap.set(p.user_id, p));
 
     const driverInfoMap = new Map();
-    driverInfos?.forEach(d => driverInfoMap.set(d.user_id, d));
+    driverInfos?.forEach((d: any) => driverInfoMap.set(d.user_id, d));
 
     // 5. 合併資料
-    const driversWithInfo = drivers?.map(driver => ({
+    const driversWithInfo = drivers?.map((driver: any) => ({
       ...driver,
       user_profiles: profileMap.get(driver.id),
       drivers: driverInfoMap.get(driver.id)
@@ -130,9 +130,9 @@ export async function GET(request: NextRequest) {
         console.error('❌ 獲取訂單失敗:', bookingsError);
       } else {
         // 檢查每個司機的衝突
-        driversWithConflicts = availableDrivers.map(driver => {
+        driversWithConflicts = availableDrivers.map((driver: any) => {
           const driverBookings = (existingBookings || []).filter(
-            booking => booking.driver_id === driver.id
+            (booking: any) => booking.driver_id === driver.id
           );
 
           // 檢查是否有時間衝突
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // 沒有提供日期時間，不檢查衝突
-      driversWithConflicts = availableDrivers.map(driver => {
+      driversWithConflicts = availableDrivers.map((driver: any) => {
         const driverInfo = driver.drivers;
         const profile = driver.user_profiles;
 

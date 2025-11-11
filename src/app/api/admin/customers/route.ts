@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 獲取所有用戶的 ID
-    const userIds = users?.map(u => u.id) || [];
+    const userIds = users?.map((u: any) => u.id) || [];
 
     // 查詢所有用戶的 profiles
     const { data: profiles, error: profileError } = await db.supabase
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     });
 
     // 合併數據
-    const customers = users?.map(user => ({
+    const customers = users?.map((user: any) => ({
       ...user,
       user_profiles: profileMap.get(user.id) || null,
     })) || [];
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 格式化客戶資料
-    const formattedCustomers = filteredCustomers.map(customer => {
+    const formattedCustomers = filteredCustomers.map((customer: any) => {
       const profile = customer.user_profiles;
 
       return {
