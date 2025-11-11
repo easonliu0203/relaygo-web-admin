@@ -47,7 +47,8 @@ export class PricingService {
   // 獲取價格配置
   static async getPricingConfig(): Promise<PricingConfig> {
     try {
-      const response = await ApiService.get('/api/admin/system-settings?key=pricing_config');
+      // 使用內部 API 調用 Next.js API route
+      const response = await ApiService.internalGet('/api/admin/system-settings?key=pricing_config');
       if (response.success) {
         return response.data.value as PricingConfig;
       }
@@ -83,7 +84,8 @@ export class PricingService {
   // 更新價格配置
   static async updatePricingConfig(config: PricingConfig): Promise<void> {
     try {
-      const response = await ApiService.put('/api/admin/system-settings', {
+      // 使用內部 API 調用 Next.js API route
+      const response = await ApiService.internalPut('/api/admin/system-settings', {
         key: 'pricing_config',
         value: config
       });
@@ -142,7 +144,8 @@ export class PricingService {
   // 獲取封測配置
   static async getBetaTestingConfig(): Promise<BetaTestingConfig> {
     try {
-      const response = await ApiService.get('/api/admin/system-settings?key=beta_testing_config');
+      // 使用內部 API 調用 Next.js API route
+      const response = await ApiService.internalGet('/api/admin/system-settings?key=beta_testing_config');
       if (response.success) {
         return response.data.value as BetaTestingConfig;
       }
@@ -163,7 +166,8 @@ export class PricingService {
   // 更新封測配置
   static async updateBetaTestingConfig(config: BetaTestingConfig): Promise<void> {
     try {
-      const response = await ApiService.put('/api/admin/system-settings', {
+      // 使用內部 API 調用 Next.js API route
+      const response = await ApiService.internalPut('/api/admin/system-settings', {
         key: 'beta_testing_config',
         value: config
       });
