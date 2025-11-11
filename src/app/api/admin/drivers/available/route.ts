@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     })) || [];
 
     // 6. 過濾可用司機
-    const availableDrivers = driversWithInfo.filter(driver => {
+    const availableDrivers = driversWithInfo.filter((driver: any) => {
       const driverInfo = driver.drivers;
 
       // 檢查司機資料是否存在

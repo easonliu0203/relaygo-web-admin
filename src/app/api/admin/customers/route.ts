@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     let filteredCustomers = customers || [];
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredCustomers = filteredCustomers.filter(customer => {
+      filteredCustomers = filteredCustomers.filter((customer: any) => {
         const profile = customer.user_profiles?.[0];
         const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.toLowerCase();
         const email = customer.email?.toLowerCase() || '';

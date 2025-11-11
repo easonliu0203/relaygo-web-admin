@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
     // 車型篩選
     if (vehicleType && vehicleType !== 'all') {
-      filteredDrivers = filteredDrivers.filter(driver => {
+      filteredDrivers = filteredDrivers.filter((driver: any) => {
         const driverInfo = driver.drivers?.[0];
         return driverInfo?.vehicle_type === vehicleType;
       });
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
     // 搜尋功能（姓名、電話、信箱、車牌）
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredDrivers = filteredDrivers.filter(driver => {
+      filteredDrivers = filteredDrivers.filter((driver: any) => {
         const profile = driver.user_profiles?.[0];
         const driverInfo = driver.drivers?.[0];
         const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.toLowerCase();
