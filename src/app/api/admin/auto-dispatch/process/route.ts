@@ -126,9 +126,9 @@ export async function POST(request: NextRequest) {
 
     // 6. 合併司機資料並過濾可用司機
     const driverInfoMap = new Map(driverInfos?.map((d: any) => [d.user_id, d]) || []);
-    
+
     const availableDrivers = users?.filter((user: any) => {
-      const driverInfo = driverInfoMap.get(user.id);
+      const driverInfo: any = driverInfoMap.get(user.id);
       return driverInfo && driverInfo.is_available;
     }).map((user: any) => ({
       ...user,
