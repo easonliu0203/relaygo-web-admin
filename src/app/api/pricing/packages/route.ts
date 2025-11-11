@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 轉換資料庫格式為客戶端格式
-    const packages: VehiclePackage[] = pricingData.map((pricing: any) => {
+    const allPackages: VehiclePackage[] = pricingData.map((pricing: any) => {
       const clientVehicleType = VEHICLE_TYPE_MAPPING[pricing.vehicle_type as keyof typeof VEHICLE_TYPE_MAPPING];
       const displayName = VEHICLE_DISPLAY_NAMES[clientVehicleType];
       const features = [...VEHICLE_FEATURES[clientVehicleType]] as string[];
@@ -144,6 +144,18 @@ export async function GET(request: NextRequest) {
         features: features,
       };
     });
+
+    // 去重：因為 A/B 都映射到 small，C/D 都映射到 large
+    // 使用 Map 來去重，保留第一個出現的套餐
+    const uniquePackagesMap = new Map<string, VehiclePackage>();
+    allPackages.forEach((pkg: any) => {
+      if (!uniquePackagesMap.has(pkg.id)) {
+        uniquePackagesMap.set(pkg.id, pkg);
+      }
+    });
+    const packages = Array.from(uniquePackagesMap.values());
+
+    console.log(`[Pricing API] 原始套餐數: ${allPackages.length}, 去重後: ${packages.length}`);
 
     return NextResponse.json({
       success: true,
