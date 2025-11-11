@@ -111,17 +111,17 @@ export async function GET(request: NextRequest) {
 
     // 創建映射
     const profileMap = new Map();
-    profiles?.forEach(p => {
+    profiles?.forEach((p: any) => {
       profileMap.set(p.user_id, p);
     });
 
     const driverInfoMap = new Map();
-    driverInfos?.forEach(d => {
+    driverInfos?.forEach((d: any) => {
       driverInfoMap.set(d.user_id, d);
     });
 
     const userMap = new Map();
-    users?.forEach(u => {
+    users?.forEach((u: any) => {
       userMap.set(u.id, u);
     });
 
