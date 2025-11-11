@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
           .eq('driver_id', account.id);
 
         const allBookingIds = [
-          ...(customerBookings?.map(b => b.id) || []),
-          ...(driverBookings?.map(b => b.id) || [])
+          ...(customerBookings?.map((b: any) => b.id) || []),
+          ...(driverBookings?.map((b: any) => b.id) || [])
         ];
 
         // 2. 刪除相關的 payments（如果有）
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
     let totalUsers = 0;
     let totalErrors = 0;
 
-    deleteResults.forEach(result => {
+    deleteResults.forEach((result: any) => {
       totalBookings += result.deletedRecords.bookings;
       totalDrivers += result.deletedRecords.drivers;
       totalProfiles += result.deletedRecords.userProfiles;
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
       message: '清理完成',
       summary,
       deleteResults,
-      remainingUsers: remainingUsers?.map(u => ({
+      remainingUsers: remainingUsers?.map((u: any) => ({
         email: u.email,
         role: u.role
       }))
