@@ -129,7 +129,7 @@ export default function ConfirmedOrdersPage() {
       title: '客戶資訊',
       key: 'customer',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div>
           <div>{record.customer?.name || '未知客戶'}</div>
           <div className="text-gray-500 text-sm">{record.customer?.phone || '無電話'}</div>
@@ -140,7 +140,7 @@ export default function ConfirmedOrdersPage() {
       title: '司機',
       key: 'driver',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         record.driver ? (
           <div>
             <div>{record.driver.name}</div>
@@ -162,7 +162,7 @@ export default function ConfirmedOrdersPage() {
       title: '路線',
       key: 'route',
       width: 200,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div className="text-sm">
           <div>起：{record.pickupLocation || '-'}</div>
           <div>迄：{record.dropoffLocation || '-'}</div>
@@ -194,7 +194,7 @@ export default function ConfirmedOrdersPage() {
         const dateB = `${b.scheduledDate} ${b.scheduledTime || '00:00'}`;
         return dayjs(dateA).unix() - dayjs(dateB).unix();
       },
-      render: (_: any, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
+      render: (_, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
     },
     {
       title: '狀態',
@@ -207,14 +207,14 @@ export default function ConfirmedOrdersPage() {
       title: '金額',
       key: 'amount',
       width: 120,
-      render: (_: any, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
+      render: (_, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
     },
     {
       title: '操作',
       key: 'action',
       width: 100,
       fixed: 'right' as const,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button

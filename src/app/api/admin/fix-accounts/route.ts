@@ -134,10 +134,10 @@ export async function POST(request: NextRequest) {
     } else {
       console.log(`   ✅ 找到 ${allUsers?.length || 0} 個用戶帳號`);
 
-      allUsers?.forEach((user: any) => {
+      allUsers?.forEach(user => {
         const profile = user.user_profiles?.[0] || user.user_profiles;
-        const name = profile
-          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+        const name = profile 
+          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
           : '未知';
         console.log(`      - ${name} (${user.email}) - UID: ${user.firebase_uid}`);
       });
@@ -151,10 +151,10 @@ export async function POST(request: NextRequest) {
       success: results.errors.length === 0,
       message: results.errors.length === 0 ? '修復完成' : '修復完成，但有錯誤',
       results,
-      verifiedUsers: allUsers?.map((u: any) => {
+      verifiedUsers: allUsers?.map(u => {
         const profile = u.user_profiles?.[0] || u.user_profiles;
-        const name = profile
-          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+        const name = profile 
+          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
           : '未知';
         return {
           email: u.email,

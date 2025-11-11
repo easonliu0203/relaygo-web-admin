@@ -60,11 +60,11 @@ export async function GET(
 
     // 計算統計資料
     const totalOrders = bookings?.length || 0;
-    const completedOrders = bookings?.filter((b: any) => b.status === 'completed').length || 0;
-    const cancelledOrders = bookings?.filter((b: any) => b.status === 'cancelled').length || 0;
+    const completedOrders = bookings?.filter(b => b.status === 'completed').length || 0;
+    const cancelledOrders = bookings?.filter(b => b.status === 'cancelled').length || 0;
     const totalSpent = bookings
-      ?.filter((b: any) => b.status === 'completed')
-      .reduce((sum: number, b: any) => sum + (b.total_amount || 0), 0) || 0;
+      ?.filter(b => b.status === 'completed')
+      .reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
 
     // 最後訂單日期
     const lastOrderDate = bookings && bookings.length > 0 ? bookings[0].created_at : null;
@@ -114,7 +114,7 @@ export async function GET(
       joinedDate: user.created_at,
 
       // 最近訂單
-      recentBookings: bookings?.slice(0, 5).map((b: any) => ({
+      recentBookings: bookings?.slice(0, 5).map(b => ({
         id: b.id,
         status: b.status,
         amount: b.total_amount,

@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '@/lib/supabase';
+import { DatabaseService } from '@/lib/database';
 
 export async function GET(
   req: NextRequest,
@@ -121,7 +121,7 @@ export async function GET(
 
     // 8. 獲取發送者和接收者的資訊
     const userIds = new Set<string>();
-    messages?.forEach((msg: any) => {
+    messages?.forEach(msg => {
       userIds.add(msg.sender_id);
       userIds.add(msg.receiver_id);
     });
@@ -138,13 +138,13 @@ export async function GET(
 
     // 9. 創建用戶映射
     const userMap = new Map();
-    users?.forEach((u: any) => userMap.set(u.id, u));
+    users?.forEach(u => userMap.set(u.id, u));
 
     const profileMap = new Map();
-    profiles?.forEach((p: any) => profileMap.set(p.user_id, p));
+    profiles?.forEach(p => profileMap.set(p.user_id, p));
 
     // 10. 轉換訊息格式
-    const formattedMessages = messages?.map((msg: any) => {
+    const formattedMessages = messages?.map(msg => {
       const sender = userMap.get(msg.sender_id);
       const senderProfile = profileMap.get(msg.sender_id);
       const senderName = senderProfile

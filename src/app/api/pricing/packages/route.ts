@@ -109,29 +109,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 轉換資料庫格式為客戶端格式，並去重
-    // 使用 Map 來確保每個 (vehicleCategory, duration) 組合只出現一次
-    const packagesMap = new Map<string, VehiclePackage>();
-
-    pricingData.forEach((pricing: VehiclePricing) => {
+    // 轉換資料庫格式為客戶端格式
+    const packages: VehiclePackage[] = pricingData.map((pricing: VehiclePricing) => {
       const clientVehicleType = VEHICLE_TYPE_MAPPING[pricing.vehicle_type as keyof typeof VEHICLE_TYPE_MAPPING];
-      const packageKey = `${clientVehicleType}_${pricing.duration_hours}h`;
-
-      // 如果這個組合已經存在，跳過（避免重複）
-      if (packagesMap.has(packageKey)) {
-        return;
+      const displayName = VEHICLE_DISPLAY_NAMES[clientVehicleType];
+      const features = [...VEHICLE_FEATURES[clientVehicleType]];
+      
+      // 8小時方案添加長時間優惠標籤
+      if (pricing.duration_hours >= 8) {
+        features.push('長時間包車優惠');
       }
 
-      const displayName = VEHICLE_DISPLAY_NAMES[clientVehicleType];
-      const baseFeatures = [...VEHICLE_FEATURES[clientVehicleType]] as string[];
-
-      // 8小時方案添加長時間優惠標籤
-      const features = pricing.duration_hours >= 8
-        ? [...baseFeatures, '長時間包車優惠']
-        : baseFeatures;
-
-      packagesMap.set(packageKey, {
-        id: packageKey,
+      return {
+        id: `${clientVehicleType}_${pricing.duration_hours}h`,
         name: `${displayName} ${pricing.duration_hours}小時方案`,
         description: `適合${pricing.duration_hours}小時內的${clientVehicleType === 'large' ? '大型車' : '小型車'}包車服務`,
         duration: pricing.duration_hours,
@@ -140,17 +130,7 @@ export async function GET(request: NextRequest) {
         overtimeRate: pricing.overtime_rate,
         vehicleCategory: clientVehicleType,
         features: features,
-      });
-    });
-
-    // 將 Map 轉換為陣列，並按車型和時長排序
-    const packages = Array.from(packagesMap.values()).sort((a, b) => {
-      // 先按車型排序（small 在前，large 在後）
-      if (a.vehicleCategory !== b.vehicleCategory) {
-        return a.vehicleCategory === 'small' ? -1 : 1;
-      }
-      // 再按時長排序（6小時在前，8小時在後）
-      return a.duration - b.duration;
+      };
     });
 
     return NextResponse.json({

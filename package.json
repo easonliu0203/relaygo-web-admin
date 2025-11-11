@@ -4,9 +4,9 @@
   "description": "包車/接送叫車服務後台管理系統",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3001",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p 3001",
+    "start": "next start -p 3001",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",

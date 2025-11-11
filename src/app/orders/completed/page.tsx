@@ -7,26 +7,19 @@ import {
   SearchOutlined,
   EyeOutlined,
   ReloadOutlined,
-  WifiOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { ApiService } from '@/services/api';
-import { useRealtimeBookings } from '@/hooks/useRealtimeBookings';
 
 const { Search } = Input;
 
 export default function CompletedOrdersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [orders, setOrders] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState('');
-
-  // 使用 Realtime Hook（即時監聽訂單變更）
-  const { bookings: allBookings, setBookings: setAllBookings, isConnected } = useRealtimeBookings([]);
-
-  // 過濾出已完成訂單
-  const orders = allBookings.filter(booking => booking.status === 'completed');
 
   // 載入已完成訂單
   const loadOrders = async () => {
@@ -45,7 +38,7 @@ export default function CompletedOrdersPage() {
       const response = await ApiService.getBookings(params);
 
       if (response.success) {
-        setAllBookings(response.data || []); // 設置初始數據
+        setOrders(response.data || []);
         setTotal(response.total || 0);
       } else {
         throw new Error(response.message || '載入訂單失敗');
@@ -53,7 +46,7 @@ export default function CompletedOrdersPage() {
     } catch (error: any) {
       console.error('❌ 載入已完成訂單失敗:', error);
       message.error(error.message || '載入訂單失敗');
-      setAllBookings([]);
+      setOrders([]);
       setTotal(0);
     } finally {
       setLoading(false);
@@ -61,7 +54,7 @@ export default function CompletedOrdersPage() {
   };
 
   useEffect(() => {
-    loadOrders(); // 只在頁面載入時執行一次，之後由 Realtime 自動更新
+    loadOrders();
   }, []);
 
   const handleSearch = (value: string) => {
@@ -107,7 +100,7 @@ export default function CompletedOrdersPage() {
       title: '客戶資訊',
       key: 'customer',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div>
           <div>{record.customer?.name || '未知客戶'}</div>
           <div className="text-gray-500 text-sm">{record.customer?.phone || '無電話'}</div>
@@ -118,7 +111,7 @@ export default function CompletedOrdersPage() {
       title: '司機',
       key: 'driver',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         record.driver ? (
           <div>
             <div>{record.driver.name}</div>
@@ -140,7 +133,7 @@ export default function CompletedOrdersPage() {
       title: '路線',
       key: 'route',
       width: 200,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div className="text-sm">
           <div>起：{record.pickupLocation || '-'}</div>
           <div>迄：{record.dropoffLocation || '-'}</div>
@@ -172,7 +165,7 @@ export default function CompletedOrdersPage() {
         const dateB = `${b.scheduledDate} ${b.scheduledTime || '00:00'}`;
         return dayjs(dateA).unix() - dayjs(dateB).unix();
       },
-      render: (_: any, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
+      render: (_, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
     },
     {
       title: '狀態',
@@ -201,14 +194,14 @@ export default function CompletedOrdersPage() {
       title: '金額',
       key: 'amount',
       width: 120,
-      render: (_: any, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
+      render: (_, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
     },
     {
       title: '操作',
       key: 'action',
       width: 100,
       fixed: 'right' as const,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button
@@ -230,19 +223,7 @@ export default function CompletedOrdersPage() {
             <CheckCircleOutlined className="mr-2" />
             已完成訂單
           </h1>
-          <p className="text-gray-600">
-            所有已完成的訂單記錄
-            {isConnected && (
-              <Tag color="green" className="ml-2">
-                <WifiOutlined /> 即時連接已啟用
-              </Tag>
-            )}
-            {!isConnected && (
-              <Tag color="orange" className="ml-2">
-                <WifiOutlined /> 連接中...
-              </Tag>
-            )}
-          </p>
+          <p className="text-gray-600">所有已完成的訂單記錄</p>
         </div>
         <Button icon={<ReloadOutlined />} onClick={loadOrders} loading={loading}>
           重新整理

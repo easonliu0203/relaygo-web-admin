@@ -20,16 +20,6 @@ try {
       persistSession: true,
       autoRefreshToken: true,
     },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-    },
-    global: {
-      headers: {
-        'x-client-info': 'web-admin',
-      },
-    },
   });
 } catch (error) {
   console.warn('無法建立 Supabase 客戶端實例:', error);
@@ -41,10 +31,6 @@ try {
       update: () => ({ data: [], error: null }),
       delete: () => ({ data: [], error: null }),
     }),
-    channel: () => ({
-      on: () => ({ subscribe: () => {} }),
-    }),
-    removeChannel: () => {},
   };
 }
 
@@ -304,10 +290,10 @@ export class DatabaseService {
       this.client.from(TABLES.PAYMENTS).select('amount').eq('status', 'completed'),
     ]);
 
-    const totalRevenue = revenueResult.data?.reduce((sum: any, payment: any) => sum + payment.amount, 0) || 0;
-    const todayRevenue = revenueResult.data?.filter((payment: any) =>
+    const totalRevenue = revenueResult.data?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+    const todayRevenue = revenueResult.data?.filter(payment => 
       payment.created_at?.startsWith(today)
-    ).reduce((sum: any, payment: any) => sum + payment.amount, 0) || 0;
+    ).reduce((sum, payment) => sum + payment.amount, 0) || 0;
 
     return {
       totalBookings: totalBookingsResult.count || 0,

@@ -47,7 +47,7 @@ export class PricingService {
   // 獲取價格配置
   static async getPricingConfig(): Promise<PricingConfig> {
     try {
-      const response = await ApiService.internalGet('/api/admin/system-settings?key=pricing_config');
+      const response = await ApiService.get('/api/admin/system-settings?key=pricing_config');
       if (response.success) {
         return response.data.value as PricingConfig;
       }
@@ -83,7 +83,7 @@ export class PricingService {
   // 更新價格配置
   static async updatePricingConfig(config: PricingConfig): Promise<void> {
     try {
-      const response = await ApiService.internalPut('/api/admin/system-settings', {
+      const response = await ApiService.put('/api/admin/system-settings', {
         key: 'pricing_config',
         value: config
       });
@@ -122,7 +122,7 @@ export class PricingService {
   // 獲取車型對應表
   static async getVehicleTypeMapping(): Promise<Record<string, any>> {
     try {
-      const response = await ApiService.internalGet('/api/admin/system-settings?key=vehicle_type_mapping');
+      const response = await ApiService.get('/api/admin/system-settings?key=vehicle_type_mapping');
       if (response.success) {
         return response.data.value;
       }
@@ -142,7 +142,7 @@ export class PricingService {
   // 獲取封測配置
   static async getBetaTestingConfig(): Promise<BetaTestingConfig> {
     try {
-      const response = await ApiService.internalGet('/api/admin/system-settings?key=beta_testing_config');
+      const response = await ApiService.get('/api/admin/system-settings?key=beta_testing_config');
       if (response.success) {
         return response.data.value as BetaTestingConfig;
       }
@@ -163,7 +163,7 @@ export class PricingService {
   // 更新封測配置
   static async updateBetaTestingConfig(config: BetaTestingConfig): Promise<void> {
     try {
-      const response = await ApiService.internalPut('/api/admin/system-settings', {
+      const response = await ApiService.put('/api/admin/system-settings', {
         key: 'beta_testing_config',
         value: config
       });
@@ -178,7 +178,7 @@ export class PricingService {
   // 獲取支付設定
   static async getPaymentSettings(): Promise<any> {
     try {
-      const response = await ApiService.internalGet('/api/admin/system-settings?key=payment_settings');
+      const response = await ApiService.get('/api/admin/system-settings?key=payment_settings');
       if (response.success) {
         return response.data.value;
       }

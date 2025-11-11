@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 獲取所有用戶的 ID
-    const userIds = users?.map((u: any) => u.id) || [];
+    const userIds = users?.map(u => u.id) || [];
 
     // 查詢所有用戶的 profiles
     const { data: profiles, error: profileError } = await db.supabase
@@ -76,25 +76,25 @@ export async function GET(request: NextRequest) {
 
     // 創建 profile 映射
     const profileMap = new Map();
-    profiles?.forEach((p: any) => {
+    profiles?.forEach(p => {
       profileMap.set(p.user_id, p);
     });
 
     // 合併數據
-    const customers = users?.map((user: any) => ({
+    const customers = users?.map(user => ({
       ...user,
       user_profiles: profileMap.get(user.id) || null,
     })) || [];
 
-    const error: any = null;
+    const error = null;
 
     if (error) {
       console.error('❌ 查詢客戶失敗:', error);
       return NextResponse.json(
-        {
+        { 
           success: false,
-          error: '查詢客戶失敗',
-          details: error.message
+          error: '查詢客戶失敗', 
+          details: error.message 
         },
         { status: 500 }
       );
@@ -104,20 +104,20 @@ export async function GET(request: NextRequest) {
     let filteredCustomers = customers || [];
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredCustomers = filteredCustomers.filter((customer: any) => {
+      filteredCustomers = filteredCustomers.filter(customer => {
         const profile = customer.user_profiles?.[0];
         const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.toLowerCase();
         const email = customer.email?.toLowerCase() || '';
         const phone = profile?.phone?.toLowerCase() || '';
-
-        return fullName.includes(searchLower) ||
-               email.includes(searchLower) ||
+        
+        return fullName.includes(searchLower) || 
+               email.includes(searchLower) || 
                phone.includes(searchLower);
       });
     }
 
     // 格式化客戶資料
-    const formattedCustomers = filteredCustomers.map((customer: any) => {
+    const formattedCustomers = filteredCustomers.map(customer => {
       const profile = customer.user_profiles;
 
       return {

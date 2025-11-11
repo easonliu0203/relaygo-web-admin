@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 獲取所有用戶的 ID
-    const userIds = users?.map((u: any) => u.id) || [];
+    const userIds = users?.map(u => u.id) || [];
 
     // 查詢所有用戶的 profiles
     const { data: profiles, error: profileError } = await db.supabase
@@ -85,31 +85,31 @@ export async function GET(request: NextRequest) {
 
     // 創建映射
     const profileMap = new Map();
-    profiles?.forEach((p: any) => {
+    profiles?.forEach(p => {
       profileMap.set(p.user_id, p);
     });
 
     const driverMap = new Map();
-    driverInfos?.forEach((d: any) => {
+    driverInfos?.forEach(d => {
       driverMap.set(d.user_id, d);
     });
 
     // 合併數據
-    const drivers = users?.map((user: any) => ({
+    const drivers = users?.map(user => ({
       ...user,
       user_profiles: profileMap.get(user.id) || null,
       drivers: driverMap.get(user.id) || null,
     })) || [];
 
-    const error: any = null;
+    const error = null;
 
     if (error) {
       console.error('❌ 查詢司機失敗:', error);
       return NextResponse.json(
-        {
+        { 
           success: false,
-          error: '查詢司機失敗',
-          details: error.message
+          error: '查詢司機失敗', 
+          details: error.message 
         },
         { status: 500 }
       );
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
     // 車型篩選
     if (vehicleType && vehicleType !== 'all') {
-      filteredDrivers = filteredDrivers.filter((driver: any) => {
+      filteredDrivers = filteredDrivers.filter(driver => {
         const driverInfo = driver.drivers?.[0];
         return driverInfo?.vehicle_type === vehicleType;
       });
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
     // 搜尋功能（姓名、電話、信箱、車牌）
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredDrivers = filteredDrivers.filter((driver: any) => {
+      filteredDrivers = filteredDrivers.filter(driver => {
         const profile = driver.user_profiles?.[0];
         const driverInfo = driver.drivers?.[0];
         const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.toLowerCase();
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 格式化司機資料
-    const formattedDrivers = filteredDrivers.map((driver: any) => {
+    const formattedDrivers = filteredDrivers.map(driver => {
       const profile = driver.user_profiles;
       const driverInfo = driver.drivers;
 

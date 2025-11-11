@@ -14,41 +14,14 @@ const nextConfig = {
   },
 
   // 重寫規則 (僅在有 API_URL 時啟用)
-  // ⚠️ 重要：只重定向特定的 API 路徑到 Backend，保留 Next.js 內部 API
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (apiUrl) {
       return [
-        // 重定向到 Backend 的 API 路徑
         {
-          source: '/api/bookings/:path*',
-          destination: `${apiUrl}/api/bookings/:path*`,
+          source: '/api/:path*',
+          destination: `${apiUrl}/api/:path*`,
         },
-        {
-          source: '/api/booking-flow/:path*',
-          destination: `${apiUrl}/api/booking-flow/:path*`,
-        },
-        {
-          source: '/api/payment/:path*',
-          destination: `${apiUrl}/api/payment/:path*`,
-        },
-        {
-          source: '/api/pricing/:path*',
-          destination: `${apiUrl}/api/pricing/:path*`,
-        },
-        {
-          source: '/api/profile/:path*',
-          destination: `${apiUrl}/api/profile/:path*`,
-        },
-        {
-          source: '/api/reviews/:path*',
-          destination: `${apiUrl}/api/reviews/:path*`,
-        },
-        {
-          source: '/api/health',
-          destination: `${apiUrl}/api/health`,
-        },
-        // ⚠️ 不重定向 /api/admin/* 和 /api/auth/*，這些由 Next.js 內部 API 處理
       ];
     }
     return [];

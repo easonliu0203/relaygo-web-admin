@@ -154,7 +154,7 @@ export default function PaymentsPage() {
     {
       title: '金額',
       key: 'amount',
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div className="font-medium">
           NT$ {record.amount.toLocaleString()}
         </div>
@@ -193,7 +193,7 @@ export default function PaymentsPage() {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button
@@ -316,7 +316,7 @@ export default function PaymentsPage() {
           <Col xs={24} sm={8}>
             <RangePicker
               value={dateRange}
-              onChange={(dates: any) => setDateRange(dates)}
+              onChange={setDateRange}
               placeholder={['開始日期', '結束日期']}
               style={{ width: '100%' }}
             />

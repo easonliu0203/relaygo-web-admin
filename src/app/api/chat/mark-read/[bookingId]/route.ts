@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '@/lib/supabase';
+import { DatabaseService } from '@/lib/database';
 
 export async function PUT(
   req: NextRequest,

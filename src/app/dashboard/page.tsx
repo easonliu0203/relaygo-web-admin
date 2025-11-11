@@ -146,7 +146,7 @@ export default function DashboardPage() {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Booking) => (
+      render: (_, record: Booking) => (
         <Button
           type="link"
           size="small"

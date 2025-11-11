@@ -15,7 +15,6 @@ import {
   BellOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  StarOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore, selectSidebarState, selectNotificationState } from '@/store/appStore';
@@ -72,21 +71,11 @@ const menuItems = [
     ],
   },
   {
-    key: '/reviews',
-    icon: <StarOutlined />,
-    label: '評價管理',
-    children: [
-      { key: '/reviews', label: '評價列表' },
-      { key: '/reviews/statistics', label: '統計報表' },
-    ],
-  },
-  {
     key: '/reports',
     icon: <BarChartOutlined />,
     label: '報表統計',
     children: [
       { key: '/reports/revenue', label: '營收分析' },
-      { key: '/reports/earnings', label: '司機收入統計' },
       { key: '/reports/drivers', label: '司機績效' },
       { key: '/reports/customers', label: '客戶統計' },
     ],
@@ -148,7 +137,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: '帳號設定',
       onClick: () => router.push('/account-settings'),
     },
-    { type: 'divider' as const },
+    { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -164,8 +153,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: '查看所有通知',
       onClick: () => router.push('/notifications'),
     },
-    { type: 'divider' as const },
-    ...notifications.slice(0, 5).map((notif: any) => ({
+    { type: 'divider' },
+    ...notifications.slice(0, 5).map((notif) => ({
       key: notif.id,
       label: (
         <div className="max-w-xs">
@@ -188,7 +177,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         theme="dark"
         mode="inline"
         selectedKeys={[pathname]}
-        defaultOpenKeys={['/orders', '/drivers', '/payments', '/reviews', '/reports', '/settings']}
+        defaultOpenKeys={['/orders', '/drivers', '/payments', '/reports', '/settings']}
         items={menuItems}
         onClick={({ key }) => {
           router.push(key);

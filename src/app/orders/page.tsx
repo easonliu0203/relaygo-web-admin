@@ -12,12 +12,10 @@ import {
   ReloadOutlined,
   SwapOutlined,
   CloseOutlined,
-  WifiOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { ApiService } from '@/services/api';
-import { useRealtimeBookings } from '@/hooks/useRealtimeBookings';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -26,14 +24,12 @@ const { TextArea } = Input;
 
 export default function OrdersPage() {
   const router = useRouter();
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [total, setTotal] = useState(0);
-
-  // 使用 Realtime Hook（即時監聽訂單變更）
-  const { bookings: orders, setBookings: setOrders, isConnected } = useRealtimeBookings([]);
 
   // 司機選擇對話框
   const [driverModalVisible, setDriverModalVisible] = useState(false);
@@ -287,7 +283,7 @@ export default function OrdersPage() {
       title: '客戶資訊',
       key: 'customer',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div>
           <div>{record.customer?.name || '未知客戶'}</div>
           <div className="text-gray-500 text-sm">{record.customer?.phone || '無電話'}</div>
@@ -298,7 +294,7 @@ export default function OrdersPage() {
       title: '司機',
       key: 'driver',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         record.driver ? (
           <div>
             <div>{record.driver.name}</div>
@@ -320,7 +316,7 @@ export default function OrdersPage() {
       title: '路線',
       key: 'route',
       width: 200,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div className="text-sm">
           <div>起：{record.pickupLocation || '-'}</div>
           <div>迄：{record.dropoffLocation || '-'}</div>
@@ -352,7 +348,7 @@ export default function OrdersPage() {
         const dateB = `${b.scheduledDate} ${b.scheduledTime || '00:00'}`;
         return dayjs(dateA).unix() - dayjs(dateB).unix();
       },
-      render: (_: any, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
+      render: (_, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
     },
     {
       title: '狀態',
@@ -365,14 +361,14 @@ export default function OrdersPage() {
       title: '金額',
       key: 'amount',
       width: 120,
-      render: (_: any, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
+      render: (_, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
     },
     {
       title: '操作',
       key: 'action',
       width: 200,
       fixed: 'right' as const,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button
@@ -431,19 +427,7 @@ export default function OrdersPage() {
             <CarOutlined className="mr-2" />
             訂單管理
           </h1>
-          <p className="text-gray-600">
-            管理所有包車訂單
-            {isConnected && (
-              <Tag color="green" className="ml-2">
-                <WifiOutlined /> 即時連接已啟用
-              </Tag>
-            )}
-            {!isConnected && (
-              <Tag color="orange" className="ml-2">
-                <WifiOutlined /> 連接中...
-              </Tag>
-            )}
-          </p>
+          <p className="text-gray-600">管理所有包車訂單</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button icon={<ReloadOutlined />} onClick={handleReload} loading={loading}>
@@ -509,7 +493,7 @@ export default function OrdersPage() {
           <Col xs={24} sm={8}>
             <RangePicker
               value={dateRange}
-              onChange={(dates: any) => setDateRange(dates)}
+              onChange={setDateRange}
               placeholder={['開始日期', '結束日期']}
               style={{ width: '100%' }}
             />
@@ -602,7 +586,7 @@ export default function OrdersPage() {
             {
               title: '狀態',
               key: 'status',
-              render: (_: any, record: any) => (
+              render: (_, record: any) => (
                 record.hasConflict ? (
                   <Tag color="red">時間衝突</Tag>
                 ) : (
@@ -613,7 +597,7 @@ export default function OrdersPage() {
             {
               title: '操作',
               key: 'action',
-              render: (_: any, record: any) => (
+              render: (_, record: any) => (
                 <Button
                   type="primary"
                   size="small"

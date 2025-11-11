@@ -23,7 +23,6 @@ interface UpsertProfileRequest {
   firebaseToken?: string; // Firebase ID Token（可選，用於額外驗證）
   firstName?: string;
   lastName?: string;
-  email?: string;
   phone?: string;
   avatarUrl?: string;
   dateOfBirth?: string;
@@ -134,7 +133,6 @@ export async function POST(request: NextRequest) {
     // 只添加提供的欄位
     if (body.firstName !== undefined) profileData.first_name = body.firstName;
     if (body.lastName !== undefined) profileData.last_name = body.lastName;
-    if (body.email !== undefined) profileData.email = body.email;
     if (body.phone !== undefined) profileData.phone = body.phone;
     if (body.avatarUrl !== undefined) profileData.avatar_url = body.avatarUrl;
     if (body.dateOfBirth !== undefined) profileData.date_of_birth = body.dateOfBirth;
@@ -190,7 +188,6 @@ export async function POST(request: NextRequest) {
         userId: profile.user_id,
         firstName: profile.first_name,
         lastName: profile.last_name,
-        email: profile.email,
         phone: profile.phone,
         avatarUrl: profile.avatar_url,
         dateOfBirth: profile.date_of_birth,
@@ -287,7 +284,6 @@ export async function GET(request: NextRequest) {
         userId: profile.user_id,
         firstName: profile.first_name,
         lastName: profile.last_name,
-        email: profile.email,
         phone: profile.phone,
         avatarUrl: profile.avatar_url,
         dateOfBirth: profile.date_of_birth,

@@ -53,7 +53,7 @@ export async function GET() {
 
     // 檢查每個需要保留的帳號
     const accountStatus = requiredAccounts.map(required => {
-      const found = users?.find((u: any) => u.email === required.email);
+      const found = users?.find(u => u.email === required.email);
       
       if (found) {
         const profile = found.user_profiles?.[0] || found.user_profiles;
@@ -92,10 +92,10 @@ export async function GET() {
     });
 
     // 所有帳號列表
-    const allAccounts = users?.map((user: any) => {
+    const allAccounts = users?.map(user => {
       const profile = user.user_profiles?.[0] || user.user_profiles;
-      const name = profile
-        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+      const name = profile 
+        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() 
         : '未知';
 
       return {

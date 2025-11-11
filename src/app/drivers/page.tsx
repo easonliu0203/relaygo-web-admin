@@ -108,7 +108,7 @@ export default function DriversPage() {
     {
       title: '司機資訊',
       key: 'driver',
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div className="flex items-center space-x-3">
           <Avatar size={40} src={record.avatar}>
             {record.name.charAt(0)}
@@ -131,7 +131,7 @@ export default function DriversPage() {
     {
       title: '車輛資訊',
       key: 'vehicle',
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div>
           <div className="flex items-center">
             <CarOutlined className="mr-1" />
@@ -144,7 +144,7 @@ export default function DriversPage() {
     {
       title: '評分',
       key: 'rating',
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div className="flex items-center space-x-2">
           <Rate disabled defaultValue={record.rating} allowHalf />
           <span className="text-sm text-gray-500">({record.rating})</span>
@@ -176,7 +176,7 @@ export default function DriversPage() {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button

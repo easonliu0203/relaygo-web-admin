@@ -26,7 +26,7 @@ const internalApiClient: AxiosInstance = axios.create({
 
 // 請求攔截器（外部 API）
 apiClient.interceptors.request.use(
-  (config: any) => {
+  (config: AxiosRequestConfig) => {
     // 添加認證 token
     const token = Cookies.get('admin_token') || localStorage.getItem('admin_token');
     if (token) {
@@ -60,7 +60,7 @@ apiClient.interceptors.request.use(
 
 // 請求攔截器（內部 API）
 internalApiClient.interceptors.request.use(
-  (config: any) => {
+  (config: AxiosRequestConfig) => {
     // 添加認證 token
     const token = Cookies.get('admin_token') || localStorage.getItem('admin_token');
     if (token) {

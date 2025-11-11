@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Tag, Input, Row, Col, Statistic, Space, Tooltip, Alert, message, Modal, Switch } from 'antd';
+import { Card, Table, Button, Tag, Input, Row, Col, Statistic, Space, Tooltip, Alert, message, Modal, Switch, Popover } from 'antd';
 import {
   ClockCircleOutlined,
   SearchOutlined,
@@ -14,6 +14,7 @@ import {
   SwapOutlined,
   WifiOutlined,
   RobotOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -594,6 +595,51 @@ export default function PendingOrdersPage() {
               unCheckedChildren="關閉"
             />
           </div>
+
+          {/* 問號說明 */}
+          <Popover
+            content={
+              <div style={{ maxWidth: 400 }}>
+                <div className="mb-3">
+                  <strong className="text-base">🤖 24/7 自動派單</strong>
+                </div>
+                <div className="space-y-2">
+                  <p className="mb-2">
+                    <strong>功能說明：</strong>
+                    <br />
+                    Railway 背景服務每 30 秒自動處理待派單訂單，無需人工介入。
+                  </p>
+                  <p className="mb-2">
+                    <strong>智能匹配機制：</strong>
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>✅ 只處理已付訂金的訂單</li>
+                    <li>✅ 智能匹配車型（訂單車型 = 司機車型）</li>
+                    <li>✅ 無匹配訂單時跳過執行，節省成本</li>
+                    <li>✅ 自動分配最優司機</li>
+                  </ul>
+                  <p className="mb-2 mt-3">
+                    <strong>與手動派單的區別：</strong>
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li><strong>24/7 自動派單：</strong>背景服務持續運行，自動處理</li>
+                    <li><strong>手動派單：</strong>立即執行一次，手動觸發</li>
+                  </ul>
+                  <p className="mt-3 text-gray-500 text-sm">
+                    💡 建議：營業時間開啟 24/7 自動派單，非營業時間可關閉以節省成本。
+                  </p>
+                </div>
+              </div>
+            }
+            title={null}
+            trigger="hover"
+            placement="bottomLeft"
+          >
+            <QuestionCircleOutlined
+              className="text-gray-400 hover:text-blue-500 cursor-help text-lg"
+              style={{ marginLeft: -4 }}
+            />
+          </Popover>
 
           <Button
             type="primary"

@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     console.log(`📋 找到 ${drivers?.length || 0} 位司機用戶`);  // ✅ 添加日誌
 
     // 2. 獲取所有司機的 ID
-    const driverIds = drivers?.map((d: any) => d.id) || [];
+    const driverIds = drivers?.map(d => d.id) || [];
 
     // 3. 分別查詢 profiles 和 drivers 資料
     const { data: profiles } = await db.supabase
@@ -65,20 +65,20 @@ export async function GET(request: NextRequest) {
 
     // 4. 創建映射
     const profileMap = new Map();
-    profiles?.forEach((p: any) => profileMap.set(p.user_id, p));
+    profiles?.forEach(p => profileMap.set(p.user_id, p));
 
     const driverInfoMap = new Map();
-    driverInfos?.forEach((d: any) => driverInfoMap.set(d.user_id, d));
+    driverInfos?.forEach(d => driverInfoMap.set(d.user_id, d));
 
     // 5. 合併資料
-    const driversWithInfo = drivers?.map((driver: any) => ({
+    const driversWithInfo = drivers?.map(driver => ({
       ...driver,
       user_profiles: profileMap.get(driver.id),
       drivers: driverInfoMap.get(driver.id)
     })) || [];
 
     // 6. 過濾可用司機
-    const availableDrivers = driversWithInfo.filter((driver: any) => {
+    const availableDrivers = driversWithInfo.filter(driver => {
       const driverInfo = driver.drivers;
 
       // 檢查司機資料是否存在
@@ -94,25 +94,9 @@ export async function GET(request: NextRequest) {
       }
 
       // 如果指定了車型，檢查車型是否匹配
-      if (vehicleType) {
-        // 車型映射：A/B -> large, C/D -> small
-        const vehicleTypeMap: Record<string, string> = {
-          'A': 'large',
-          'B': 'large',
-          'C': 'small',
-          'D': 'small',
-          'large': 'large',
-          'small': 'small'
-        };
-
-        const mappedVehicleType = vehicleTypeMap[vehicleType] || vehicleType;
-
-        if (driverInfo.vehicle_type !== mappedVehicleType) {
-          console.log(`⚠️ 司機 ${driver.email} 車型不匹配 (需要: ${vehicleType} -> ${mappedVehicleType}, 實際: ${driverInfo.vehicle_type})`);
-          return false;
-        }
-
-        console.log(`✅ 司機 ${driver.email} 車型匹配 (需要: ${vehicleType} -> ${mappedVehicleType}, 實際: ${driverInfo.vehicle_type})`);
+      if (vehicleType && driverInfo.vehicle_type !== vehicleType) {
+        console.log(`⚠️ 司機 ${driver.email} 車型不匹配 (需要: ${vehicleType}, 實際: ${driverInfo.vehicle_type})`);  // ✅ 添加日誌
+        return false;
       }
 
       console.log(`✅ 司機 ${driver.email} 可用`);  // ✅ 添加日誌
@@ -146,13 +130,13 @@ export async function GET(request: NextRequest) {
         console.error('❌ 獲取訂單失敗:', bookingsError);
       } else {
         // 檢查每個司機的衝突
-        driversWithConflicts = availableDrivers.map((driver: any) => {
+        driversWithConflicts = availableDrivers.map(driver => {
           const driverBookings = (existingBookings || []).filter(
-            (booking: any) => booking.driver_id === driver.id
+            booking => booking.driver_id === driver.id
           );
 
           // 檢查是否有時間衝突
-          const hasConflict = driverBookings.some((booking: any) => {
+          const hasConflict = driverBookings.some(booking => {
             const [bookingHours, bookingMinutes] = booking.start_time.split(':').map(Number);
             const bookingStartMinutes = bookingHours * 60 + bookingMinutes;
             const bookingEndMinutes = bookingStartMinutes + (booking.duration_hours * 60);
@@ -194,7 +178,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // 沒有提供日期時間，不檢查衝突
-      driversWithConflicts = availableDrivers.map((driver: any) => {
+      driversWithConflicts = availableDrivers.map(driver => {
         const driverInfo = driver.drivers;
         const profile = driver.user_profiles;
 
@@ -218,20 +202,20 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. 排序：無衝突的在前，按當前訂單數量排序
-    driversWithConflicts.sort((a: any, b: any) => {
+    driversWithConflicts.sort((a, b) => {
       if (a.hasConflict !== b.hasConflict) {
         return a.hasConflict ? 1 : -1; // 無衝突的在前
       }
       return a.currentBookings - b.currentBookings; // 訂單少的在前
     });
 
-    console.log(`✅ 找到 ${driversWithConflicts.length} 位可用司機 (${driversWithConflicts.filter((d: any) => !d.hasConflict).length} 位無衝突)`);
+    console.log(`✅ 找到 ${driversWithConflicts.length} 位可用司機 (${driversWithConflicts.filter(d => !d.hasConflict).length} 位無衝突)`);
 
     return NextResponse.json({
       success: true,
       data: driversWithConflicts,
       total: driversWithConflicts.length,
-      availableCount: driversWithConflicts.filter((d: any) => !d.hasConflict).length,
+      availableCount: driversWithConflicts.filter(d => !d.hasConflict).length,
     });
 
   } catch (error) {
