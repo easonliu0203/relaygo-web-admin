@@ -58,6 +58,18 @@ interface VehiclePackage {
   features: string[];
 }
 
+// CORS headers for mobile app access
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest) {
   try {
     let pricingData: any[] = [];
@@ -106,7 +118,7 @@ export async function GET(request: NextRequest) {
         success: true,
         data: defaultPackages,
         source: 'default'
-      });
+      }, { headers: corsHeaders });
     }
 
     // 轉換資料庫格式為客戶端格式
@@ -137,13 +149,13 @@ export async function GET(request: NextRequest) {
       success: true,
       data: packages,
       source: 'database'
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('API 錯誤:', error);
     return NextResponse.json(
       { error: '內部伺服器錯誤', details: error instanceof Error ? error.message : '未知錯誤' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
