@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
           const key = `${driver.id}_${booking.start_date}`;
           const driverDayBookings = driverBookingsByDate.get(key) || [];
 
-          const hasConflict = driverDayBookings.some(existingBooking => {
+          const hasConflict = driverDayBookings.some((existingBooking: any) => {
             const [existingHours, existingMinutes] = (existingBooking.start_time || '00:00').split(':').map(Number);
             const existingStartMinutes = existingHours * 60 + existingMinutes;
             const existingEndMinutes = existingStartMinutes + ((existingBooking.duration_hours || 8) * 60);

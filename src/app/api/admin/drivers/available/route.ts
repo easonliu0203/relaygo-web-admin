@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
           );
 
           // 檢查是否有時間衝突
-          const hasConflict = driverBookings.some(booking => {
+          const hasConflict = driverBookings.some((booking: any) => {
             const [bookingHours, bookingMinutes] = booking.start_time.split(':').map(Number);
             const bookingStartMinutes = bookingHours * 60 + bookingMinutes;
             const bookingEndMinutes = bookingStartMinutes + (booking.duration_hours * 60);
