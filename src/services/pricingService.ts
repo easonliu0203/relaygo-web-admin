@@ -50,12 +50,30 @@ export class PricingService {
       // 使用內部 API 調用 Next.js API route
       const response = await ApiService.internalGet('/api/admin/system-settings?key=pricing_config');
       if (response.success) {
-        return response.data.value as PricingConfig;
+        const rawData = response.data.value;
+
+        // 處理駝峰命名和蛇形命名的兼容性
+        // 資料庫可能儲存 vehicleTypes (駝峰) 或 vehicle_types (蛇形)
+        const vehicleTypes = rawData.vehicleTypes || rawData.vehicle_types;
+
+        if (!vehicleTypes) {
+          throw new Error('價格配置資料格式錯誤：缺少 vehicle_types');
+        }
+
+        // 標準化為蛇形命名格式
+        return {
+          vehicle_types: {
+            large: vehicleTypes.large,
+            small: vehicleTypes.small
+          },
+          currency: rawData.currency || 'USD',
+          updated_at: rawData.updated_at || new Date().toISOString()
+        };
       }
       throw new Error(response.message || '獲取價格配置失敗');
     } catch (error: any) {
       // 降級到模擬資料
-      console.warn('使用模擬價格配置');
+      console.warn('使用模擬價格配置:', error.message);
       return {
         vehicle_types: {
           large: {
