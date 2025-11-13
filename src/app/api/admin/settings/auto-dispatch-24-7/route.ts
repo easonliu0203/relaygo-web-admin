@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
           enabled: false,
           interval_seconds: 30,
           batch_size: 10,
+          max_dispatch_days: 7, // ✅ 新增：預設 7 天
           last_run_at: null,
           total_processed: 0,
           total_assigned: 0,
@@ -64,19 +65,21 @@ export async function GET(request: NextRequest) {
 
 /**
  * PUT /api/admin/settings/auto-dispatch-24-7
- * 更新 24/7 全自動派單開關狀態
- * 
+ * 更新 24/7 全自動派單開關狀態和最多派單日
+ *
  * Body:
  * {
- *   "enabled": true/false
+ *   "enabled": true/false,
+ *   "max_dispatch_days": number (optional, 預設 7)
  * }
  */
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { enabled } = body;
+    const { enabled, max_dispatch_days } = body;
 
-    if (typeof enabled !== 'boolean') {
+    // 驗證 enabled 參數
+    if (enabled !== undefined && typeof enabled !== 'boolean') {
       return NextResponse.json(
         {
           success: false,
@@ -84,6 +87,19 @@ export async function PUT(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // 驗證 max_dispatch_days 參數
+    if (max_dispatch_days !== undefined) {
+      if (typeof max_dispatch_days !== 'number' || max_dispatch_days < 1 || max_dispatch_days > 365) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '參數錯誤：max_dispatch_days 必須是 1-365 之間的數字'
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const db = new DatabaseService(true); // 使用 service_role key
@@ -110,7 +126,8 @@ export async function PUT(request: NextRequest) {
     // 更新配置
     const updatedValue = {
       ...(currentData?.value || {}),
-      enabled,
+      ...(enabled !== undefined && { enabled }),
+      ...(max_dispatch_days !== undefined && { max_dispatch_days }),
       updated_at: new Date().toISOString()
     };
 
@@ -133,12 +150,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log(`✅ 24/7 自動派單已${enabled ? '開啟' : '關閉'}`);
+    // 生成成功訊息
+    let message = '';
+    if (enabled !== undefined && max_dispatch_days !== undefined) {
+      message = `24/7 自動派單已${enabled ? '開啟' : '關閉'}，最多派單日設為 ${max_dispatch_days} 天`;
+    } else if (enabled !== undefined) {
+      message = `24/7 自動派單已${enabled ? '開啟' : '關閉'}`;
+    } else if (max_dispatch_days !== undefined) {
+      message = `最多派單日已設為 ${max_dispatch_days} 天`;
+    }
+
+    console.log(`✅ ${message}`);
 
     return NextResponse.json({
       success: true,
       data: data.value,
-      message: `24/7 自動派單已${enabled ? '開啟' : '關閉'}`
+      message
     });
 
   } catch (error) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Tag, Input, Row, Col, Statistic, Space, Tooltip, Alert, message, Modal, Switch, Popover } from 'antd';
+import { Card, Table, Button, Tag, Input, Row, Col, Statistic, Space, Tooltip, Alert, message, Modal, Switch, Popover, InputNumber } from 'antd';
 import {
   ClockCircleOutlined,
   SearchOutlined,
@@ -51,6 +51,10 @@ export default function PendingOrdersPage() {
   const [autoDispatch24x7Enabled, setAutoDispatch24x7Enabled] = useState(false);
   const [loadingAutoDispatch24x7, setLoadingAutoDispatch24x7] = useState(false);
 
+  // 最多派單日
+  const [maxDispatchDays, setMaxDispatchDays] = useState(7);
+  const [loadingMaxDispatchDays, setLoadingMaxDispatchDays] = useState(false);
+
   // 取消訂單對話框
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -91,7 +95,7 @@ export default function PendingOrdersPage() {
     }
   };
 
-  // 載入 24/7 自動派單開關狀態
+  // 載入 24/7 自動派單開關狀態和最多派單日
   const loadAutoDispatch24x7Status = async () => {
     try {
       const response = await fetch('/api/admin/settings/auto-dispatch-24-7');
@@ -99,6 +103,7 @@ export default function PendingOrdersPage() {
 
       if (data.success) {
         setAutoDispatch24x7Enabled(data.data?.enabled || false);
+        setMaxDispatchDays(data.data?.max_dispatch_days || 7); // ✅ 載入最多派單日
       }
     } catch (error) {
       console.error('❌ 載入 24/7 自動派單狀態失敗:', error);
@@ -127,6 +132,36 @@ export default function PendingOrdersPage() {
       message.error('更新失敗');
     } finally {
       setLoadingAutoDispatch24x7(false);
+    }
+  };
+
+  // 更新最多派單日
+  const handleMaxDispatchDaysChange = async (value: number) => {
+    if (!value || value < 1 || value > 365) {
+      message.error('最多派單日必須在 1-365 之間');
+      return;
+    }
+
+    setLoadingMaxDispatchDays(true);
+    try {
+      const response = await fetch('/api/admin/settings/auto-dispatch-24-7', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max_dispatch_days: value }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setMaxDispatchDays(value);
+        message.success(data.message || `最多派單日已設為 ${value} 天`);
+      } else {
+        message.error(data.error || '更新失敗');
+      }
+    } catch (error) {
+      console.error('❌ 更新最多派單日失敗:', error);
+      message.error('更新失敗');
+    } finally {
+      setLoadingMaxDispatchDays(false);
     }
   };
 
@@ -583,6 +618,20 @@ export default function PendingOrdersPage() {
           </p>
         </div>
         <div className="flex items-center space-x-3">
+          {/* 最多派單日 */}
+          <div className="flex items-center space-x-2 px-3 py-1 bg-gray-50 rounded-lg border border-gray-200">
+            <span className="text-sm font-medium">最多派單日:</span>
+            <InputNumber
+              min={1}
+              max={365}
+              value={maxDispatchDays}
+              onChange={(value) => value && handleMaxDispatchDaysChange(value)}
+              disabled={loadingMaxDispatchDays}
+              style={{ width: 70 }}
+              addonAfter="天"
+            />
+          </div>
+
           {/* 24/7 自動派單開關 */}
           <div className="flex items-center space-x-2 px-3 py-1 bg-gray-50 rounded-lg border border-gray-200">
             <RobotOutlined className={autoDispatch24x7Enabled ? 'text-green-500' : 'text-gray-400'} />
