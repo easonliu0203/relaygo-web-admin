@@ -226,11 +226,22 @@ export default function OrdersPage() {
     }
   };
 
-  // 訂單狀態配置
+  // 訂單狀態配置（四階段分類）
   const statusConfig = {
+    // === 階段 I: 付款與搜尋 ===
+    PENDING_PAYMENT: { color: 'volcano', text: '待付訂金' },
     pending: { color: 'orange', text: '待配對' },
+    awaitingDriver: { color: 'gold', text: '待司機確認' },
+
+    // === 階段 II: 服務中 ===
     matched: { color: 'cyan', text: '已配對' },
+    ON_THE_WAY: { color: 'blue', text: '正在路上' },
     inProgress: { color: 'green', text: '進行中' },
+
+    // === 階段 III: 結算 ===
+    awaitingBalance: { color: 'lime', text: '待付尾款' },
+
+    // === 階段 IV: 最終 ===
     completed: { color: 'success', text: '已完成' },
     cancelled: { color: 'error', text: '已取消' },
   };
@@ -283,7 +294,7 @@ export default function OrdersPage() {
       title: '客戶資訊',
       key: 'customer',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div>
           <div>{record.customer?.name || '未知客戶'}</div>
           <div className="text-gray-500 text-sm">{record.customer?.phone || '無電話'}</div>
@@ -294,7 +305,7 @@ export default function OrdersPage() {
       title: '司機',
       key: 'driver',
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         record.driver ? (
           <div>
             <div>{record.driver.name}</div>
@@ -316,7 +327,7 @@ export default function OrdersPage() {
       title: '路線',
       key: 'route',
       width: 200,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <div className="text-sm">
           <div>起：{record.pickupLocation || '-'}</div>
           <div>迄：{record.dropoffLocation || '-'}</div>
@@ -348,7 +359,7 @@ export default function OrdersPage() {
         const dateB = `${b.scheduledDate} ${b.scheduledTime || '00:00'}`;
         return dayjs(dateA).unix() - dayjs(dateB).unix();
       },
-      render: (_: any, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
+      render: (_, record: any) => formatDateTime(record.scheduledDate, record.scheduledTime),
     },
     {
       title: '狀態',
@@ -361,14 +372,14 @@ export default function OrdersPage() {
       title: '金額',
       key: 'amount',
       width: 120,
-      render: (_: any, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
+      render: (_, record: any) => `NT$ ${record.pricing?.totalAmount?.toLocaleString() || 0}`,
     },
     {
       title: '操作',
       key: 'action',
       width: 200,
       fixed: 'right' as const,
-      render: (_: any, record: any) => (
+      render: (_, record: any) => (
         <Space>
           <Tooltip title="查看詳情">
             <Button
@@ -493,7 +504,7 @@ export default function OrdersPage() {
           <Col xs={24} sm={8}>
             <RangePicker
               value={dateRange}
-              onChange={(dates: any) => setDateRange(dates)}
+              onChange={setDateRange}
               placeholder={['開始日期', '結束日期']}
               style={{ width: '100%' }}
             />
@@ -586,7 +597,7 @@ export default function OrdersPage() {
             {
               title: '狀態',
               key: 'status',
-              render: (_: any, record: any) => (
+              render: (_, record: any) => (
                 record.hasConflict ? (
                   <Tag color="red">時間衝突</Tag>
                 ) : (
@@ -597,7 +608,7 @@ export default function OrdersPage() {
             {
               title: '操作',
               key: 'action',
-              render: (_: any, record: any) => (
+              render: (_, record: any) => (
                 <Button
                   type="primary"
                   size="small"
