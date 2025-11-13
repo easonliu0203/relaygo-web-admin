@@ -627,9 +627,13 @@ export default function PendingOrdersPage() {
               value={maxDispatchDays}
               onChange={(value) => value && handleMaxDispatchDaysChange(value)}
               disabled={loadingMaxDispatchDays}
-              style={{ width: 70 }}
-              addonAfter="天"
+              controls={{
+                upIcon: <span>▲</span>,
+                downIcon: <span>▼</span>,
+              }}
+              style={{ width: 80 }}
             />
+            <span className="text-sm font-medium">天</span>
           </div>
 
           {/* 24/7 自動派單開關 */}
