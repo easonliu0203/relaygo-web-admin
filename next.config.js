@@ -13,17 +13,11 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
   },
 
-  // 重寫規則 (僅在有 API_URL 時啟用)
+  // 重寫規則：將特定 API 路由代理到外部 Backend
+  // ⚠️ 重要：保留 /api/admin/*, /api/auth/*, /api/chat/*, /api/profile/* 給 Next.js 內部 API
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (apiUrl) {
-      return [
-        {
-          source: '/api/:path*',
-          destination: `${apiUrl}/api/:path*`,
-        },
-      ];
-    }
+    // 不使用 NEXT_PUBLIC_API_URL，因為這會導致所有 API 路由被重寫
+    // 公司端網頁應該使用 Next.js 內部 API 路由
     return [];
   },
   
