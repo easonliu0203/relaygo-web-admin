@@ -22,13 +22,30 @@ export async function GET(
 
     // 初始化 Firebase Admin（如果尚未初始化）
     if (getApps().length === 0) {
-      const serviceAccount = JSON.parse(
-        process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}'
-      );
+      try {
+        const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
-      initializeApp({
-        credential: cert(serviceAccount),
-      });
+        if (!serviceAccountKey) {
+          throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY 環境變數未設置');
+        }
+
+        console.log('🔑 環境變數長度:', serviceAccountKey.length);
+        console.log('🔑 環境變數前 100 字元:', serviceAccountKey.substring(0, 100));
+
+        const serviceAccount = JSON.parse(serviceAccountKey);
+
+        initializeApp({
+          credential: cert(serviceAccount),
+        });
+
+        console.log('✅ Firebase Admin SDK 初始化成功');
+      } catch (error) {
+        console.error('❌ Firebase Admin SDK 初始化失敗:', error);
+        if (error instanceof SyntaxError) {
+          console.error('JSON 解析錯誤，請檢查環境變數格式');
+        }
+        throw new Error(`Firebase 初始化失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
+      }
     }
 
     const firestore = getFirestore();
@@ -39,15 +56,20 @@ export async function GET(
       .doc(bookingId)
       .collection('location_history');
 
+    console.log('📍 查詢路徑:', `/bookings/${bookingId}/location_history`);
+
     const locationHistorySnapshot = await locationHistoryRef
       .orderBy('timestamp', 'desc')
       .get();
+
+    console.log('📍 找到的位置記錄數量:', locationHistorySnapshot.size);
 
     let departureLocation: any = null;
     let arrivalLocation: any = null;
 
     locationHistorySnapshot.forEach((doc) => {
       const data = doc.data();
+      console.log('📍 位置記錄:', { id: doc.id, status: data.status, latitude: data.latitude, longitude: data.longitude });
 
       if (data.status === 'driver_departed' && !departureLocation) {
         departureLocation = {
