@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ApiService } from '@/services/api';
+import DriverLocationTracking from '@/components/DriverLocationTracking';
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -50,22 +51,10 @@ export default function OrderDetailPage() {
   }, [orderId]);
 
   // 訂單狀態配置
-  // 訂單狀態配置（四階段分類）
   const statusConfig: Record<string, { color: string; text: string }> = {
-    // === 階段 I: 付款與搜尋 ===
-    PENDING_PAYMENT: { color: 'volcano', text: '待付訂金' },
     pending: { color: 'orange', text: '待配對' },
-    awaitingDriver: { color: 'gold', text: '待司機確認' },
-
-    // === 階段 II: 服務中 ===
     matched: { color: 'cyan', text: '已配對' },
-    ON_THE_WAY: { color: 'blue', text: '正在路上' },
     inProgress: { color: 'green', text: '進行中' },
-
-    // === 階段 III: 結算 ===
-    awaitingBalance: { color: 'lime', text: '待付尾款' },
-
-    // === 階段 IV: 最終 ===
     completed: { color: 'success', text: '已完成' },
     cancelled: { color: 'error', text: '已取消' },
   };
@@ -183,6 +172,11 @@ export default function OrderDetailPage() {
           <Empty description="尚未分配司機" />
         )}
       </Card>
+
+      {/* 司機位置追蹤 */}
+      {order.driver && (
+        <DriverLocationTracking bookingId={orderId} orderStatus={order.status} />
+      )}
 
       {/* 路線資訊 */}
       <Card title={<><EnvironmentOutlined /> 路線資訊</>}>
