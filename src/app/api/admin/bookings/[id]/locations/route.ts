@@ -126,15 +126,25 @@ export async function GET(
 
       if (driverId) {
         // 3. 獲取司機即時定位（從 driver_locations 集合）
+        console.log('📍 查詢司機即時定位:', { driverId });
+
         const driverLocationRef = firestore
           .collection('driver_locations')
           .doc(driverId);
 
         const driverLocationDoc = await driverLocationRef.get();
 
+        console.log('📍 司機定位文檔存在:', driverLocationDoc.exists);
+
         if (driverLocationDoc.exists) {
           const locationData = driverLocationDoc.data();
-          
+          console.log('📍 司機定位資料:', {
+            latitude: locationData?.latitude,
+            longitude: locationData?.longitude,
+            isOnline: locationData?.isOnline,
+            timestamp: locationData?.timestamp,
+          });
+
           realtimeLocation = {
             latitude: locationData?.latitude || null,
             longitude: locationData?.longitude || null,
@@ -147,8 +157,14 @@ export async function GET(
             timestamp: locationData?.timestamp?.toDate?.()?.toISOString() || null,
             isOnline: locationData?.isOnline || false,
           };
+        } else {
+          console.log('⚠️  司機定位文檔不存在，可能司機尚未開始位置追蹤');
         }
+      } else {
+        console.log('⚠️  訂單資料中沒有司機 ID');
       }
+    } else {
+      console.log('⚠️  訂單文檔不存在:', bookingId);
     }
 
     console.log('✅ 成功獲取位置資料:', {
