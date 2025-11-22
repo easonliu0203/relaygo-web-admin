@@ -23,26 +23,48 @@ export async function GET(
     // 初始化 Firebase Admin（如果尚未初始化）
     if (getApps().length === 0) {
       try {
-        const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+        // 方法 1: 使用分離的環境變數（推薦）
+        const projectId = process.env.FIREBASE_PROJECT_ID;
+        const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+        const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-        if (!serviceAccountKey) {
-          throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY 環境變數未設置');
+        if (projectId && clientEmail && privateKey) {
+          console.log('🔑 使用分離的環境變數初始化 Firebase');
+
+          initializeApp({
+            credential: cert({
+              projectId,
+              clientEmail,
+              privateKey: privateKey.replace(/\\n/g, '\n'), // 處理轉義的換行符
+            }),
+          });
+
+          console.log('✅ Firebase Admin SDK 初始化成功（分離環境變數）');
+        } else {
+          // 方法 2: 使用單一 JSON 環境變數（備用）
+          const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+          if (!serviceAccountKey) {
+            throw new Error('Firebase 環境變數未設置。請設置 FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY 或 FIREBASE_SERVICE_ACCOUNT_KEY');
+          }
+
+          console.log('🔑 使用 JSON 環境變數初始化 Firebase');
+          console.log('🔑 環境變數長度:', serviceAccountKey.length);
+          console.log('🔑 環境變數前 100 字元:', serviceAccountKey.substring(0, 100));
+
+          const serviceAccount = JSON.parse(serviceAccountKey);
+
+          initializeApp({
+            credential: cert(serviceAccount),
+          });
+
+          console.log('✅ Firebase Admin SDK 初始化成功（JSON 環境變數）');
         }
-
-        console.log('🔑 環境變數長度:', serviceAccountKey.length);
-        console.log('🔑 環境變數前 100 字元:', serviceAccountKey.substring(0, 100));
-
-        const serviceAccount = JSON.parse(serviceAccountKey);
-
-        initializeApp({
-          credential: cert(serviceAccount),
-        });
-
-        console.log('✅ Firebase Admin SDK 初始化成功');
       } catch (error) {
         console.error('❌ Firebase Admin SDK 初始化失敗:', error);
         if (error instanceof SyntaxError) {
           console.error('JSON 解析錯誤，請檢查環境變數格式');
+          console.error('建議使用分離的環境變數: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY');
         }
         throw new Error(`Firebase 初始化失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
       }
