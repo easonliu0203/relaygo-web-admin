@@ -12,7 +12,7 @@ import { getFirestore } from 'firebase-admin/firestore';
  * - realtimeLocation: 即時定位（持續更新）
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -43,12 +43,12 @@ export async function GET(
       .orderBy('timestamp', 'desc')
       .get();
 
-    let departureLocation = null;
-    let arrivalLocation = null;
+    let departureLocation: any = null;
+    let arrivalLocation: any = null;
 
     locationHistorySnapshot.forEach((doc) => {
       const data = doc.data();
-      
+
       if (data.status === 'driver_departed' && !departureLocation) {
         departureLocation = {
           latitude: data.latitude,
@@ -58,7 +58,7 @@ export async function GET(
           timestamp: data.timestamp?.toDate?.()?.toISOString() || null,
         };
       }
-      
+
       if (data.status === 'driver_arrived' && !arrivalLocation) {
         arrivalLocation = {
           latitude: data.latitude,
@@ -73,8 +73,8 @@ export async function GET(
     // 2. 獲取訂單資料以取得司機 ID
     const bookingRef = firestore.collection('orders_rt').doc(bookingId);
     const bookingDoc = await bookingRef.get();
-    
-    let realtimeLocation = null;
+
+    let realtimeLocation: any = null;
     
     if (bookingDoc.exists) {
       const bookingData = bookingDoc.data();
