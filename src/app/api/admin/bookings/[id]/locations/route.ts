@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { DatabaseService } from '@/lib/supabase';
 
 /**
  * GET /api/admin/bookings/[id]/locations
  * 獲取訂單的司機位置追蹤資料
- * 
+ *
  * 返回資料：
- * - departureLocation: 出發定位（一次性記錄）
- * - arrivalLocation: 到達定位（一次性記錄）
- * - realtimeLocation: 即時定位（持續更新）
+ * - departureLocation: 出發定位（從 Supabase bookings 表讀取）
+ * - arrivalLocation: 到達定位（從 Supabase bookings 表讀取）
+ * - realtimeLocation: 即時定位（從 Firestore driver_locations 讀取）
  */
 export async function GET(
   _request: NextRequest,
@@ -72,49 +73,48 @@ export async function GET(
 
     const firestore = getFirestore();
 
-    // 1. 獲取出發和到達定位記錄（從 location_history 集合）
-    const locationHistoryRef = firestore
-      .collection('bookings')
-      .doc(bookingId)
-      .collection('location_history');
+    // 1. 從 Supabase 獲取訂單資料（包含出發和到達位置）
+    const db = new DatabaseService(true); // 使用 service_role key
+    const { data: booking, error: bookingError } = await db.supabase
+      .from('bookings')
+      .select('driver_id, driver_depart_latitude, driver_depart_longitude, driver_arrive_latitude, driver_arrive_longitude, updated_at')
+      .eq('id', bookingId)
+      .single();
 
-    console.log('📍 查詢路徑:', `/bookings/${bookingId}/location_history`);
+    if (bookingError) {
+      console.error('❌ 從 Supabase 獲取訂單失敗:', bookingError);
+    }
 
-    const locationHistorySnapshot = await locationHistoryRef
-      .orderBy('timestamp', 'desc')
-      .get();
-
-    console.log('📍 找到的位置記錄數量:', locationHistorySnapshot.size);
-
-    let departureLocation: any = null;
-    let arrivalLocation: any = null;
-
-    locationHistorySnapshot.forEach((doc) => {
-      const data = doc.data();
-      console.log('📍 位置記錄:', { id: doc.id, status: data.status, latitude: data.latitude, longitude: data.longitude });
-
-      if (data.status === 'driver_departed' && !departureLocation) {
-        departureLocation = {
-          latitude: data.latitude,
-          longitude: data.longitude,
-          googleMapsUrl: data.googleMapsUrl,
-          appleMapsUrl: data.appleMapsUrl,
-          timestamp: data.timestamp?.toDate?.()?.toISOString() || null,
-        };
-      }
-
-      if (data.status === 'driver_arrived' && !arrivalLocation) {
-        arrivalLocation = {
-          latitude: data.latitude,
-          longitude: data.longitude,
-          googleMapsUrl: data.googleMapsUrl,
-          appleMapsUrl: data.appleMapsUrl,
-          timestamp: data.timestamp?.toDate?.()?.toISOString() || null,
-        };
-      }
+    console.log('📍 Supabase 訂單資料:', {
+      hasDepart: !!(booking?.driver_depart_latitude && booking?.driver_depart_longitude),
+      hasArrive: !!(booking?.driver_arrive_latitude && booking?.driver_arrive_longitude),
     });
 
-    // 2. 獲取訂單資料以取得司機 ID
+    // 構建出發位置資料
+    let departureLocation: any = null;
+    if (booking?.driver_depart_latitude && booking?.driver_depart_longitude) {
+      departureLocation = {
+        latitude: booking.driver_depart_latitude,
+        longitude: booking.driver_depart_longitude,
+        googleMapsUrl: `https://maps.google.com/?q=${booking.driver_depart_latitude},${booking.driver_depart_longitude}`,
+        appleMapsUrl: `https://maps.apple.com/?q=${booking.driver_depart_latitude},${booking.driver_depart_longitude}`,
+        timestamp: booking.updated_at || null,
+      };
+    }
+
+    // 構建到達位置資料
+    let arrivalLocation: any = null;
+    if (booking?.driver_arrive_latitude && booking?.driver_arrive_longitude) {
+      arrivalLocation = {
+        latitude: booking.driver_arrive_latitude,
+        longitude: booking.driver_arrive_longitude,
+        googleMapsUrl: `https://maps.google.com/?q=${booking.driver_arrive_latitude},${booking.driver_arrive_longitude}`,
+        appleMapsUrl: `https://maps.apple.com/?q=${booking.driver_arrive_latitude},${booking.driver_arrive_longitude}`,
+        timestamp: booking.updated_at || null,
+      };
+    }
+
+    // 2. 從 Firestore 獲取訂單資料以取得司機 ID（用於即時定位）
     const bookingRef = firestore.collection('orders_rt').doc(bookingId);
     const bookingDoc = await bookingRef.get();
 
