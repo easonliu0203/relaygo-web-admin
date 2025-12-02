@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
     // 車型篩選
     if (vehicleType && vehicleType !== 'all') {
       filteredDrivers = filteredDrivers.filter((driver: any) => {
-        const driverInfo = driver.drivers?.[0];
+        const driverInfo = driver.drivers; // ✅ 修復：不是陣列，直接使用物件
         return driverInfo?.vehicle_type === vehicleType;
       });
     }
@@ -130,8 +130,8 @@ export async function GET(request: NextRequest) {
     if (search) {
       const searchLower = search.toLowerCase();
       filteredDrivers = filteredDrivers.filter((driver: any) => {
-        const profile = driver.user_profiles?.[0];
-        const driverInfo = driver.drivers?.[0];
+        const profile = driver.user_profiles; // ✅ 修復：不是陣列，直接使用物件
+        const driverInfo = driver.drivers; // ✅ 修復：不是陣列，直接使用物件
         const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.toLowerCase();
         const email = driver.email?.toLowerCase() || '';
         const phone = profile?.phone?.toLowerCase() || '';
