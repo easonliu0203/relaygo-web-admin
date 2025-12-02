@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     let userQuery = db.supabase
       .from('users')
       .select('*', { count: 'exact' })
-      .eq('role', 'driver')
+      .contains('roles', ['driver']) // ✅ 修復：檢查 roles 陣列是否包含 'driver'，支援一個帳號同時登入客戶端與司機端
       .order('created_at', { ascending: false });
 
     // 狀態篩選（用戶狀態）

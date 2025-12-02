@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const { data: drivers, error: driversError } = await db.supabase
       .from('users')
       .select('id, firebase_uid, email, phone, role, status')  // ✅ 添加 phone 欄位
-      .eq('role', 'driver')
+      .contains('roles', ['driver']) // ✅ 修復：檢查 roles 陣列是否包含 'driver'，支援一個帳號同時登入客戶端與司機端
       .eq('status', 'active');
 
     if (driversError) {
