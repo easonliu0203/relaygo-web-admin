@@ -65,6 +65,7 @@ export async function POST(
       .select(`
         id,
         role,
+        roles,
         drivers!user_id (
           id,
           vehicle_type,
@@ -72,7 +73,7 @@ export async function POST(
         )
       `)
       .eq('id', driverId)
-      .eq('role', 'driver')
+      .contains('roles', ['driver']) // ✅ 修復：檢查 roles 陣列是否包含 'driver'，支援多角色用戶
       .single();
 
     if (driverError || !driver) {

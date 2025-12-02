@@ -21,7 +21,7 @@ export async function GET(
       .from('users')
       .select('*')
       .eq('id', driverId)
-      .eq('role', 'driver')
+      .contains('roles', ['driver']) // ✅ 修復：檢查 roles 陣列是否包含 'driver'，支援多角色用戶
       .single();
 
     if (userError || !user) {
