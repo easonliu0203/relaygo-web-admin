@@ -3,259 +3,272 @@
 import { useState, useEffect } from 'react';
 import { 
   Card, 
-  Form, 
-  InputNumber, 
+  Table, 
   Button, 
   Typography, 
   Space, 
-  Divider, 
-  Alert, 
+  message,
   Switch,
-  Row,
-  Col,
-  Table,
+  InputNumber,
+  Input,
+  Select,
+  Popconfirm,
   Tag,
-  message
+  Modal,
+  Form,
 } from 'antd';
 import { 
   DollarOutlined, 
-  CarOutlined, 
-  ClockCircleOutlined,
-  SaveOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   ReloadOutlined,
-  SettingOutlined
+  SaveOutlined,
 } from '@ant-design/icons';
-import { PricingService, PricingConfig, BetaTestingConfig } from '@/services/pricingService';
+import { createClient } from '@supabase/supabase-js';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
+
+// Supabase 客戶端
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
+
+interface VehiclePricing {
+  id: string;
+  vehicle_type: string;
+  vehicle_description: string;
+  capacity_info: string;
+  duration_hours: number;
+  base_price: number;
+  overtime_rate: number;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const VEHICLE_TYPE_OPTIONS = [
+  { value: 'XS', label: 'XS - Extra Small 特小型' },
+  { value: 'S', label: 'S - Small 小型' },
+  { value: 'M', label: 'M - Medium 中型' },
+  { value: 'L', label: 'L - Large 大型' },
+  { value: 'XL', label: 'XL - Extra Large 特大型' },
+];
+
+const DURATION_OPTIONS = [
+  { value: 4, label: '4小時' },
+  { value: 6, label: '6小時' },
+  { value: 8, label: '8小時' },
+];
 
 export default function PricingSettingsPage() {
-  const [form] = Form.useForm();
-  const [betaForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [pricingConfig, setPricingConfig] = useState<PricingConfig | null>(null);
-  const [betaConfig, setBetaConfig] = useState<BetaTestingConfig | null>(null);
+  const [pricingList, setPricingList] = useState<VehiclePricing[]>([]);
+  const [editingKey, setEditingKey] = useState<string>('');
+  const [editingRecord, setEditingRecord] = useState<VehiclePricing | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
-  // 載入配置
-  const loadConfigs = async () => {
+  // 載入價格配置
+  const loadPricingList = async () => {
     setLoading(true);
     try {
-      const [pricing, beta] = await Promise.all([
-        PricingService.getPricingConfig(),
-        PricingService.getBetaTestingConfig()
-      ]);
-      
-      setPricingConfig(pricing);
-      setBetaConfig(beta);
-      
-      // 設定表單初始值
-      form.setFieldsValue({
-        large_6h_original: pricing.vehicle_types.large.packages['6_hours'].original_price,
-        large_6h_discount: pricing.vehicle_types.large.packages['6_hours'].discount_price,
-        large_6h_overtime: pricing.vehicle_types.large.packages['6_hours'].overtime_rate,
-        large_8h_original: pricing.vehicle_types.large.packages['8_hours'].original_price,
-        large_8h_discount: pricing.vehicle_types.large.packages['8_hours'].discount_price,
-        large_8h_overtime: pricing.vehicle_types.large.packages['8_hours'].overtime_rate,
-        small_6h_original: pricing.vehicle_types.small.packages['6_hours'].original_price,
-        small_6h_discount: pricing.vehicle_types.small.packages['6_hours'].discount_price,
-        small_6h_overtime: pricing.vehicle_types.small.packages['6_hours'].overtime_rate,
-        small_8h_original: pricing.vehicle_types.small.packages['8_hours'].original_price,
-        small_8h_discount: pricing.vehicle_types.small.packages['8_hours'].discount_price,
-        small_8h_overtime: pricing.vehicle_types.small.packages['8_hours'].overtime_rate,
-      });
-      
-      betaForm.setFieldsValue({
-        auto_payment_enabled: beta.auto_payment_enabled,
-        auto_payment_delay_seconds: beta.auto_payment_delay_seconds,
-        notification_enabled: beta.notification_enabled,
-      });
-      
+      const { data, error } = await supabase
+        .from('vehicle_pricing')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+
+      setPricingList(data || []);
     } catch (error: any) {
-      message.error(`載入配置失敗: ${error.message}`);
+      message.error(`載入失敗: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // 儲存價格配置
-  const savePricingConfig = async (values: any) => {
-    setSaving(true);
+  // 切換啟用狀態
+  const toggleActive = async (record: VehiclePricing) => {
     try {
-      const newConfig: PricingConfig = {
-        vehicle_types: {
-          large: {
-            name: "8-9人座車型",
-            code: ["A", "B"],
-            packages: {
-              "6_hours": {
-                duration: 6,
-                original_price: values.large_6h_original,
-                discount_price: values.large_6h_discount,
-                overtime_rate: values.large_6h_overtime
-              },
-              "8_hours": {
-                duration: 8,
-                original_price: values.large_8h_original,
-                discount_price: values.large_8h_discount,
-                overtime_rate: values.large_8h_overtime
-              }
-            }
-          },
-          small: {
-            name: "3-4人座車型",
-            code: ["C", "D"],
-            packages: {
-              "6_hours": {
-                duration: 6,
-                original_price: values.small_6h_original,
-                discount_price: values.small_6h_discount,
-                overtime_rate: values.small_6h_overtime
-              },
-              "8_hours": {
-                duration: 8,
-                original_price: values.small_8h_original,
-                discount_price: values.small_8h_discount,
-                overtime_rate: values.small_8h_overtime
-              }
-            }
-          }
-        },
-        currency: "USD",
-        updated_at: new Date().toISOString()
-      };
+      const { error } = await supabase
+        .from('vehicle_pricing')
+        .update({ is_active: !record.is_active })
+        .eq('id', record.id);
 
-      // 驗證配置
-      const errors = PricingService.validatePricingConfig(newConfig);
-      if (errors.length > 0) {
-        message.error(`配置驗證失敗: ${errors.join(', ')}`);
-        return;
-      }
+      if (error) throw error;
 
-      await PricingService.updatePricingConfig(newConfig);
-      setPricingConfig(newConfig);
-      message.success('價格配置已更新');
-      
+      message.success(`已${!record.is_active ? '啟用' : '停用'}該方案`);
+      loadPricingList();
     } catch (error: any) {
-      message.error(`儲存失敗: ${error.message}`);
-    } finally {
-      setSaving(false);
+      message.error(`操作失敗: ${error.message}`);
     }
   };
 
-  // 儲存封測配置
-  const saveBetaConfig = async (values: any) => {
-    setSaving(true);
+  // 刪除方案
+  const deletePricing = async (id: string) => {
     try {
-      const newConfig: BetaTestingConfig = {
-        ...betaConfig!,
-        auto_payment_enabled: values.auto_payment_enabled,
-        auto_payment_delay_seconds: values.auto_payment_delay_seconds,
-        notification_enabled: values.notification_enabled,
-      };
+      const { error } = await supabase
+        .from('vehicle_pricing')
+        .delete()
+        .eq('id', id);
 
-      await PricingService.updateBetaTestingConfig(newConfig);
-      setBetaConfig(newConfig);
-      message.success('封測配置已更新');
-      
+      if (error) throw error;
+
+      message.success('刪除成功');
+      loadPricingList();
+    } catch (error: any) {
+      message.error(`刪除失敗: ${error.message}`);
+    }
+  };
+
+  // 開啟新增/編輯 Modal
+  const showModal = (record?: VehiclePricing) => {
+    if (record) {
+      setEditingRecord(record);
+      form.setFieldsValue(record);
+    } else {
+      setEditingRecord(null);
+      form.resetFields();
+    }
+    setIsModalVisible(true);
+  };
+
+  // 儲存方案
+  const handleSave = async (values: any) => {
+    try {
+      if (editingRecord) {
+        // 更新
+        const { error } = await supabase
+          .from('vehicle_pricing')
+          .update(values)
+          .eq('id', editingRecord.id);
+
+        if (error) throw error;
+        message.success('更新成功');
+      } else {
+        // 新增
+        const { error } = await supabase
+          .from('vehicle_pricing')
+          .insert([values]);
+
+        if (error) throw error;
+        message.success('新增成功');
+      }
+
+      setIsModalVisible(false);
+      form.resetFields();
+      loadPricingList();
     } catch (error: any) {
       message.error(`儲存失敗: ${error.message}`);
-    } finally {
-      setSaving(false);
     }
   };
 
   useEffect(() => {
-    loadConfigs();
+    loadPricingList();
   }, []);
 
-  // 價格表格資料
-  const priceTableData = pricingConfig ? [
+  // 表格欄位定義
+  const columns = [
     {
-      key: 'large_6h',
-      vehicleType: '8-9人座',
-      duration: '6小時',
-      originalPrice: pricingConfig.vehicle_types.large.packages['6_hours'].original_price,
-      discountPrice: pricingConfig.vehicle_types.large.packages['6_hours'].discount_price,
-      overtimeRate: pricingConfig.vehicle_types.large.packages['6_hours'].overtime_rate,
+      title: '顯示順序',
+      dataIndex: 'display_order',
+      key: 'display_order',
+      width: 100,
+      sorter: (a: VehiclePricing, b: VehiclePricing) => a.display_order - b.display_order,
+      render: (order: number) => <Tag color="blue">{order}</Tag>,
     },
     {
-      key: 'large_8h',
-      vehicleType: '8-9人座',
-      duration: '8小時',
-      originalPrice: pricingConfig.vehicle_types.large.packages['8_hours'].original_price,
-      discountPrice: pricingConfig.vehicle_types.large.packages['8_hours'].discount_price,
-      overtimeRate: pricingConfig.vehicle_types.large.packages['8_hours'].overtime_rate,
-    },
-    {
-      key: 'small_6h',
-      vehicleType: '3-4人座',
-      duration: '6小時',
-      originalPrice: pricingConfig.vehicle_types.small.packages['6_hours'].original_price,
-      discountPrice: pricingConfig.vehicle_types.small.packages['6_hours'].discount_price,
-      overtimeRate: pricingConfig.vehicle_types.small.packages['6_hours'].overtime_rate,
-    },
-    {
-      key: 'small_8h',
-      vehicleType: '3-4人座',
-      duration: '8小時',
-      originalPrice: pricingConfig.vehicle_types.small.packages['8_hours'].original_price,
-      discountPrice: pricingConfig.vehicle_types.small.packages['8_hours'].discount_price,
-      overtimeRate: pricingConfig.vehicle_types.small.packages['8_hours'].overtime_rate,
-    },
-  ] : [];
-
-  const priceTableColumns = [
-    {
-      title: '車型',
-      dataIndex: 'vehicleType',
-      key: 'vehicleType',
-      render: (text: string) => (
-        <Space>
-          <CarOutlined />
-          <Text strong>{text}</Text>
-        </Space>
+      title: '狀態',
+      dataIndex: 'is_active',
+      key: 'is_active',
+      width: 120,
+      render: (isActive: boolean, record: VehiclePricing) => (
+        <Switch
+          checked={isActive}
+          checkedChildren="啟用"
+          unCheckedChildren="停用"
+          onChange={() => toggleActive(record)}
+        />
       ),
+    },
+    {
+      title: '車型等級',
+      dataIndex: 'vehicle_type',
+      key: 'vehicle_type',
+      width: 120,
+      render: (type: string) => {
+        const option = VEHICLE_TYPE_OPTIONS.find(opt => opt.value === type);
+        return <Tag color="purple">{option?.label || type}</Tag>;
+      },
+    },
+    {
+      title: '車型描述',
+      dataIndex: 'vehicle_description',
+      key: 'vehicle_description',
+      width: 150,
+    },
+    {
+      title: '內容描述',
+      dataIndex: 'capacity_info',
+      key: 'capacity_info',
+      width: 150,
     },
     {
       title: '時長',
-      dataIndex: 'duration',
-      key: 'duration',
-      render: (text: string) => (
-        <Space>
-          <ClockCircleOutlined />
-          {text}
-        </Space>
-      ),
+      dataIndex: 'duration_hours',
+      key: 'duration_hours',
+      width: 100,
+      render: (hours: number) => `${hours}小時`,
     },
     {
-      title: '原價',
-      dataIndex: 'originalPrice',
-      key: 'originalPrice',
+      title: '價格',
+      dataIndex: 'base_price',
+      key: 'base_price',
+      width: 120,
       render: (price: number) => (
         <Text strong style={{ color: '#1890ff' }}>
-          {PricingService.formatPrice(price)}
+          NT${price.toLocaleString()}
         </Text>
       ),
     },
     {
-      title: '優惠價',
-      dataIndex: 'discountPrice',
-      key: 'discountPrice',
-      render: (price: number) => (
-        <Text strong style={{ color: '#52c41a' }}>
-          {PricingService.formatPrice(price)}
-        </Text>
-      ),
-    },
-    {
-      title: '超時費率',
-      dataIndex: 'overtimeRate',
-      key: 'overtimeRate',
+      title: '超時費/小時',
+      dataIndex: 'overtime_rate',
+      key: 'overtime_rate',
+      width: 120,
       render: (rate: number) => (
-        <Tag color="orange">
-          {PricingService.formatPrice(rate)}/小時
-        </Tag>
+        <Tag color="orange">NT${rate}/小時</Tag>
+      ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 150,
+      fixed: 'right' as const,
+      render: (_: any, record: VehiclePricing) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => showModal(record)}
+          >
+            編輯
+          </Button>
+          <Popconfirm
+            title="確定要刪除此方案嗎？"
+            onConfirm={() => deletePricing(record.id)}
+            okText="確定"
+            cancelText="取消"
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              刪除
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -265,333 +278,170 @@ export default function PricingSettingsPage() {
       <div className="mb-6">
         <Title level={2}>
           <DollarOutlined className="mr-2" />
-          價格配置管理
+          車型方案管理
         </Title>
         <Text type="secondary">
-          管理包車服務的價格設定和封測階段配置
+          管理包車服務的車型方案和價格設定
         </Text>
       </div>
 
-      {/* 當前價格表 */}
-      <Card 
-        title="當前價格表" 
-        className="mb-6"
+      <Card
+        title={`車型方案列表 (共 ${pricingList.length} 個)`}
         extra={
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={loadConfigs}
-            loading={loading}
-          >
-            重新載入
-          </Button>
+          <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadPricingList}
+              loading={loading}
+            >
+              重新載入
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => showModal()}
+            >
+              新增方案
+            </Button>
+          </Space>
         }
       >
         <Table
-          dataSource={priceTableData}
-          columns={priceTableColumns}
-          pagination={false}
+          dataSource={pricingList}
+          columns={columns}
+          rowKey="id"
           loading={loading}
-          size="middle"
+          pagination={false}
+          scroll={{ x: 1200 }}
         />
       </Card>
 
-      <Row gutter={24}>
-        {/* 價格設定 */}
-        <Col xs={24} lg={14}>
-          <Card title="價格設定" loading={loading}>
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={savePricingConfig}
-            >
-              <Title level={4}>8-9人座車型</Title>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item
-                    label="6小時原價"
-                    name="large_6h_original"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="6小時優惠價"
-                    name="large_6h_discount"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="超時費率"
-                    name="large_6h_overtime"
-                    rules={[{ required: true, message: '請輸入費率' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      addonAfter="/小時"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item
-                    label="8小時原價"
-                    name="large_8h_original"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="8小時優惠價"
-                    name="large_8h_discount"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="超時費率"
-                    name="large_8h_overtime"
-                    rules={[{ required: true, message: '請輸入費率' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      addonAfter="/小時"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Divider />
-
-              <Title level={4}>3-4人座車型</Title>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item
-                    label="6小時原價"
-                    name="small_6h_original"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="6小時優惠價"
-                    name="small_6h_discount"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="超時費率"
-                    name="small_6h_overtime"
-                    rules={[{ required: true, message: '請輸入費率' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      addonAfter="/小時"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item
-                    label="8小時原價"
-                    name="small_8h_original"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="8小時優惠價"
-                    name="small_8h_discount"
-                    rules={[{ required: true, message: '請輸入價格' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    label="超時費率"
-                    name="small_8h_overtime"
-                    rules={[{ required: true, message: '請輸入費率' }]}
-                  >
-                    <InputNumber
-                      min={0}
-                      precision={2}
-                      addonBefore="$"
-                      addonAfter="/小時"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<SaveOutlined />}
-                  loading={saving}
-                  size="large"
-                >
-                  儲存價格配置
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
-        </Col>
-
-        {/* 封測設定 */}
-        <Col xs={24} lg={10}>
-          <Card 
-            title={
-              <Space>
-                <SettingOutlined />
-                封測階段設定
-              </Space>
-            }
-            loading={loading}
+      {/* 新增/編輯 Modal */}
+      <Modal
+        title={editingRecord ? '編輯車型方案' : '新增車型方案'}
+        open={isModalVisible}
+        onCancel={() => {
+          setIsModalVisible(false);
+          form.resetFields();
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSave}
+          initialValues={{
+            is_active: true,
+            display_order: pricingList.length + 1,
+          }}
+        >
+          <Form.Item
+            label="車型等級"
+            name="vehicle_type"
+            rules={[{ required: true, message: '請選擇車型等級' }]}
           >
-            <Alert
-              message="封測階段功能"
-              description="啟用後，新訂單將自動從「待支付」轉為「已支付」狀態，僅用於測試環境。"
-              type="warning"
-              showIcon
-              className="mb-4"
+            <Select placeholder="請選擇車型等級">
+              {VEHICLE_TYPE_OPTIONS.map(opt => (
+                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="車型描述"
+            name="vehicle_description"
+            rules={[{ required: true, message: '請輸入車型描述' }]}
+          >
+            <Input placeholder="例如：CAMRY 等車型" />
+          </Form.Item>
+
+          <Form.Item
+            label="內容描述"
+            name="capacity_info"
+            rules={[{ required: true, message: '請輸入內容描述' }]}
+          >
+            <Input placeholder="例如：最多3人，2個行李" />
+          </Form.Item>
+
+          <Form.Item
+            label="時長設定"
+            name="duration_hours"
+            rules={[{ required: true, message: '請選擇時長' }]}
+          >
+            <Select placeholder="請選擇時長">
+              {DURATION_OPTIONS.map(opt => (
+                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="價格設定 (新台幣)"
+            name="base_price"
+            rules={[{ required: true, message: '請輸入價格' }]}
+          >
+            <InputNumber
+              min={0}
+              precision={0}
+              addonBefore="NT$"
+              style={{ width: '100%' }}
+              placeholder="例如：3800"
             />
+          </Form.Item>
 
-            <Form
-              form={betaForm}
-              layout="vertical"
-              onFinish={saveBetaConfig}
-            >
-              <Form.Item
-                label="自動支付功能"
-                name="auto_payment_enabled"
-                valuePropName="checked"
-              >
-                <Switch 
-                  checkedChildren="啟用" 
-                  unCheckedChildren="停用"
-                />
-              </Form.Item>
+          <Form.Item
+            label="超時費/小時 (新台幣)"
+            name="overtime_rate"
+            rules={[{ required: true, message: '請輸入超時費' }]}
+          >
+            <InputNumber
+              min={0}
+              precision={0}
+              addonBefore="NT$"
+              addonAfter="/小時"
+              style={{ width: '100%' }}
+              placeholder="例如：350"
+            />
+          </Form.Item>
 
-              <Form.Item
-                label="支付延遲時間（秒）"
-                name="auto_payment_delay_seconds"
-                rules={[{ required: true, message: '請輸入延遲時間' }]}
-              >
-                <InputNumber
-                  min={1}
-                  max={60}
-                  addonAfter="秒"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
+          <Form.Item
+            label="顯示順序"
+            name="display_order"
+            rules={[{ required: true, message: '請輸入顯示順序' }]}
+          >
+            <InputNumber
+              min={0}
+              style={{ width: '100%' }}
+              placeholder="數字越小越靠前"
+            />
+          </Form.Item>
 
-              <Form.Item
-                label="通知功能"
-                name="notification_enabled"
-                valuePropName="checked"
-              >
-                <Switch 
-                  checkedChildren="啟用" 
-                  unCheckedChildren="停用"
-                />
-              </Form.Item>
+          <Form.Item
+            label="狀態"
+            name="is_active"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="啟用" unCheckedChildren="停用" />
+          </Form.Item>
 
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<SaveOutlined />}
-                  loading={saving}
-                  block
-                >
-                  儲存封測設定
-                </Button>
-              </Form.Item>
-            </Form>
-
-            {betaConfig && (
-              <div className="mt-4 p-3 bg-gray-50 rounded">
-                <Text type="secondary" className="text-sm">
-                  <strong>當前狀態:</strong><br />
-                  自動支付: {betaConfig.auto_payment_enabled ? '✅ 啟用' : '❌ 停用'}<br />
-                  延遲時間: {betaConfig.auto_payment_delay_seconds}秒<br />
-                  有效期至: {new Date(betaConfig.enabled_until).toLocaleDateString()}
-                </Text>
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>
+                儲存
+              </Button>
+              <Button onClick={() => {
+                setIsModalVisible(false);
+                form.resetFields();
+              }}>
+                取消
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
+
+
