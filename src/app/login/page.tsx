@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Button, Card, Typography, Alert, Checkbox } from 'antd';
-import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, Typography, Alert, Checkbox, Divider } from 'antd';
+import { UserOutlined, LockOutlined, LoginOutlined, GoogleOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-hot-toast';
 
@@ -17,8 +17,9 @@ interface LoginForm {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated, isLoading, error, clearError } = useAuthStore();
+  const { login, loginWithGoogle, isAuthenticated, isLoading, error, clearError } = useAuthStore();
   const [form] = Form.useForm();
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // 如果已經登入，重定向到儀表板
   useEffect(() => {
@@ -50,6 +51,20 @@ export default function LoginPage() {
       email: 'admin@example.com',
       password: 'admin123456',
     });
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      await loginWithGoogle();
+      toast.success('Google 登入成功！');
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      toast.error(error.message || 'Google 登入失敗');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -130,6 +145,21 @@ export default function LoginPage() {
                 {isLoading ? '登入中...' : '登入'}
               </Button>
             </Form.Item>
+
+            {/* Google 登入分隔線 */}
+            <Divider plain>或</Divider>
+
+            {/* Google 登入按鈕 */}
+            <Button
+              icon={<GoogleOutlined />}
+              onClick={handleGoogleLogin}
+              loading={googleLoading}
+              block
+              size="large"
+              className="h-12 text-base font-medium"
+            >
+              {googleLoading ? 'Google 登入中...' : '使用 Google 帳號登入'}
+            </Button>
           </Form>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
