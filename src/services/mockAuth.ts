@@ -70,27 +70,27 @@ export class MockAuthService {
   // 模擬登入
   static async login(email: string, password: string) {
     await mockDelay();
-    
+
     // 查找用戶
     const user = MOCK_USERS.find(u => u.email === email);
-    
+
     if (!user) {
       throw new Error('用戶不存在');
     }
-    
+
     // 驗證密碼
     if (MOCK_PASSWORDS[email] !== password) {
       throw new Error('密碼錯誤');
     }
-    
+
     // 檢查用戶狀態
     if (user.status !== 'active') {
       throw new Error('帳號已被停用');
     }
-    
+
     // 生成 Token
     const token = generateMockToken(user);
-    
+
     return {
       success: true,
       data: {
@@ -98,6 +98,47 @@ export class MockAuthService {
         token,
       },
       message: '登入成功',
+    };
+  }
+
+  // 模擬 Google 登入
+  static async loginWithGoogle(idToken: string) {
+    await mockDelay();
+
+    // 在實際應用中，這裡應該驗證 Firebase ID Token
+    // 現在我們只是模擬一個成功的 Google 登入
+
+    // 解析 ID Token（實際應該使用 Firebase Admin SDK 驗證）
+    // 這裡我們假設 token 是有效的，並創建一個管理員用戶
+
+    // 檢查是否已有管理員用戶
+    let user = MOCK_USERS.find(u => u.email === 'admin@example.com');
+
+    if (!user) {
+      // 創建新的管理員用戶
+      user = {
+        id: '1',
+        email: 'admin@example.com',
+        name: '系統管理員',
+        role: 'admin',
+        status: 'active',
+        avatar: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      MOCK_USERS.push(user);
+    }
+
+    // 生成 Token
+    const token = generateMockToken(user);
+
+    return {
+      success: true,
+      data: {
+        user,
+        token,
+      },
+      message: 'Google 登入成功',
     };
   }
   
