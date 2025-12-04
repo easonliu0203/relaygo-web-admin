@@ -74,17 +74,26 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true, error: null });
 
+          console.log('🔄 開始 Google 登入流程...');
+
           // 動態載入 Firebase Auth
-          const { initializeFirebase, auth } = await import('@/lib/firebase');
+          const { initializeFirebase, getAuth } = await import('@/lib/firebase');
+
+          console.log('🔄 初始化 Firebase...');
           await initializeFirebase();
 
+          const auth = getAuth();
+          console.log('🔍 檢查 Firebase Auth:', { hasAuth: !!auth });
+
           if (!auth) {
-            throw new Error('Firebase Auth not initialized');
+            throw new Error('Firebase Auth not initialized - auth is null after initialization');
           }
 
+          console.log('🔄 載入 Google Auth Provider...');
           const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
           const provider = new GoogleAuthProvider();
 
+          console.log('🔄 彈出 Google 登入視窗...');
           // 使用 Google 登入
           const result = await signInWithPopup(auth, provider);
           const user = result.user;
@@ -96,14 +105,17 @@ export const useAuthStore = create<AuthStore>()(
           });
 
           // 獲取 Firebase ID Token
+          console.log('🔄 獲取 Firebase ID Token...');
           const idToken = await user.getIdToken();
 
           // 呼叫後端 API 驗證並創建/更新管理員帳號
+          console.log('🔄 呼叫後端 API 驗證...');
           const response = await ApiService.loginWithGoogle(idToken);
 
           if (response.success) {
             const { user: adminUser, token } = response.data;
 
+            console.log('✅ 後端驗證成功，儲存 token...');
             // 儲存 token
             Cookies.set('admin_token', token, { expires: 7 });
             localStorage.setItem('admin_token', token);
@@ -115,6 +127,8 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false,
               error: null,
             });
+
+            console.log('✅ Google 登入流程完成！');
           } else {
             throw new Error(response.message || 'Google 登入失敗');
           }
@@ -140,7 +154,8 @@ export const useAuthStore = create<AuthStore>()(
 
           // Firebase Auth 登出
           try {
-            const { auth } = await import('@/lib/firebase');
+            const { getAuth } = await import('@/lib/firebase');
+            const auth = getAuth();
             if (auth?.currentUser) {
               const { signOut } = await import('firebase/auth');
               await signOut(auth);

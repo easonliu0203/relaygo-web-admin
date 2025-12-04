@@ -9,34 +9,68 @@ const firebaseConfig = {
 };
 
 // Firebase 服務 - 延遲載入
-export let firebaseApp: any = null;
-export let auth: any = null;
-export let db: any = null;
-export let storage: any = null;
-export let messaging: any = null;
+// 使用 getter 函數來確保總是返回最新的值
+let _firebaseApp: any = null;
+let _auth: any = null;
+let _db: any = null;
+let _storage: any = null;
+let _messaging: any = null;
+
+// 導出 getter 函數
+export const getFirebaseApp = () => _firebaseApp;
+export const getAuth = () => _auth;
+export const getDb = () => _db;
+export const getStorage = () => _storage;
+export const getMessaging = () => _messaging;
+
+// 為了向後相容，保留舊的導出方式（但使用 getter）
+export const firebaseApp = new Proxy({} as any, {
+  get: () => _firebaseApp,
+});
+export const auth = new Proxy({} as any, {
+  get: () => _auth,
+});
+export const db = new Proxy({} as any, {
+  get: () => _db,
+});
+export const storage = new Proxy({} as any, {
+  get: () => _storage,
+});
+export const messaging = new Proxy({} as any, {
+  get: () => _messaging,
+});
 
 // 初始化 Firebase (僅在客戶端)
 export const initializeFirebase = async () => {
   // 只在伺服器端跳過
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    console.log('⏭️ Firebase initialization skipped (server-side)');
+    return;
+  }
 
   // 如果已經完全初始化，直接返回
-  if (firebaseApp && db) return;
+  if (_firebaseApp && _db && _auth) {
+    console.log('✅ Firebase already initialized');
+    return;
+  }
 
   try {
-    const { initializeApp, getApps } = await import('firebase/app');
-    firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    console.log('🔄 Initializing Firebase...');
 
-    const { getAuth } = await import('firebase/auth');
+    const { initializeApp, getApps } = await import('firebase/app');
+    _firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+    const { getAuth: getAuthFn } = await import('firebase/auth');
     const { getFirestore } = await import('firebase/firestore');
 
-    auth = getAuth(firebaseApp);
-    db = getFirestore(firebaseApp);
+    _auth = getAuthFn(_firebaseApp);
+    _db = getFirestore(_firebaseApp);
 
     console.log('✅ Firebase initialized successfully', {
-      hasApp: !!firebaseApp,
-      hasAuth: !!auth,
-      hasDb: !!db
+      hasApp: !!_firebaseApp,
+      hasAuth: !!_auth,
+      hasDb: !!_db,
+      authCurrentUser: _auth?.currentUser?.email || 'not logged in'
     });
 
     // Storage 延遲載入 - 只在需要時才載入，避免 undici 相容性問題
@@ -46,10 +80,11 @@ export const initializeFirebase = async () => {
     try {
       const { getMessaging, isSupported } = await import('firebase/messaging');
       if (await isSupported()) {
-        messaging = getMessaging(firebaseApp);
+        _messaging = getMessaging(_firebaseApp);
+        console.log('✅ Firebase messaging initialized');
       }
     } catch (error) {
-      console.log('Firebase messaging not supported');
+      console.log('⏭️ Firebase messaging not supported');
     }
   } catch (error) {
     console.error('❌ Firebase initialization failed:', error);
@@ -65,13 +100,13 @@ export const initializeStorage = async () => {
 
   /*
   if (typeof window === 'undefined') return;
-  if (storage) return storage;
+  if (_storage) return _storage;
 
   try {
     await initializeFirebase();
     const { getStorage } = await import('firebase/storage');
-    storage = getStorage(firebaseApp);
-    return storage;
+    _storage = getStorage(_firebaseApp);
+    return _storage;
   } catch (error) {
     console.error('Firebase storage initialization failed:', error);
     throw error;
@@ -86,7 +121,7 @@ export const initializeStorage = async () => {
 export class FirebaseService {
   // 確保 Firebase 已初始化
   static async ensureInitialized() {
-    if (!firebaseApp) {
+    if (!_firebaseApp) {
       await initializeFirebase();
     }
   }
@@ -94,26 +129,26 @@ export class FirebaseService {
   // 認證相關
   static async signInWithEmailAndPassword(email: string, password: string) {
     await this.ensureInitialized();
-    if (!auth) throw new Error('Firebase auth not initialized');
+    if (!_auth) throw new Error('Firebase auth not initialized');
 
     const { signInWithEmailAndPassword } = await import('firebase/auth');
-    return signInWithEmailAndPassword(auth, email, password);
+    return signInWithEmailAndPassword(_auth, email, password);
   }
 
   static async signOut() {
     await this.ensureInitialized();
-    if (!auth) throw new Error('Firebase auth not initialized');
+    if (!_auth) throw new Error('Firebase auth not initialized');
 
     const { signOut } = await import('firebase/auth');
-    return signOut(auth);
+    return signOut(_auth);
   }
 
   static async getCurrentUser() {
     await this.ensureInitialized();
-    if (!auth) return null;
+    if (!_auth) return null;
 
     return new Promise((resolve) => {
-      const unsubscribe = auth.onAuthStateChanged((user: any) => {
+      const unsubscribe = _auth.onAuthStateChanged((user: any) => {
         unsubscribe();
         resolve(user);
       });
@@ -123,10 +158,10 @@ export class FirebaseService {
   // 基本 Firestore 操作
   static async getDocument(collection: string, docId: string) {
     await this.ensureInitialized();
-    if (!db) throw new Error('Firebase firestore not initialized');
+    if (!_db) throw new Error('Firebase firestore not initialized');
 
     const { doc, getDoc } = await import('firebase/firestore');
-    const docRef = doc(db, collection, docId);
+    const docRef = doc(_db, collection, docId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -137,10 +172,10 @@ export class FirebaseService {
 
   static async setDocument(collection: string, docId: string, data: any) {
     await this.ensureInitialized();
-    if (!db) throw new Error('Firebase firestore not initialized');
+    if (!_db) throw new Error('Firebase firestore not initialized');
 
     const { doc, setDoc } = await import('firebase/firestore');
-    const docRef = doc(db, collection, docId);
+    const docRef = doc(_db, collection, docId);
     return setDoc(docRef, data);
   }
 
@@ -159,4 +194,4 @@ export class FirebaseService {
   }
 }
 
-export default firebaseApp;
+export default getFirebaseApp;

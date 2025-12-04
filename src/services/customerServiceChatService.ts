@@ -1,4 +1,4 @@
-import { initializeFirebase, db } from '@/lib/firebase';
+import { initializeFirebase, getDb } from '@/lib/firebase';
 import {
   collection,
   query,
@@ -34,6 +34,7 @@ export class CustomerServiceChatService {
         console.log('🔄 開始初始化 Firebase...');
         await initializeFirebase();
 
+        const db = getDb();
         console.log('🔍 檢查 db 物件:', { hasDb: !!db });
         if (!db) {
           throw new Error('Firebase Firestore not initialized - db is null');
@@ -101,6 +102,7 @@ export class CustomerServiceChatService {
         console.log('🔄 開始初始化 Firebase (訊息訂閱)...');
         await initializeFirebase();
 
+        const db = getDb();
         console.log('🔍 檢查 db 物件:', { hasDb: !!db });
         if (!db) {
           throw new Error('Firebase Firestore not initialized - db is null');
@@ -162,6 +164,7 @@ export class CustomerServiceChatService {
   ): Promise<void> {
     try {
       await initializeFirebase();
+      const db = getDb();
       if (!db) throw new Error('Firebase not initialized');
 
       const messagesRef = collection(db, 'customer_service_chats', chatId, 'messages');
