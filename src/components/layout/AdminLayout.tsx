@@ -19,6 +19,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore, selectSidebarState, selectNotificationState } from '@/store/appStore';
 import { toast } from 'react-hot-toast';
+import CustomerServiceChat from '@/components/CustomerServiceChat';
 
 const { Header, Sider, Content } = Layout;
 
@@ -278,6 +279,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {children}
         </Content>
       </Layout>
+
+      {/* 全域客服聊天視窗 */}
+      <CustomerServiceChat />
     </Layout>
   );
 }
