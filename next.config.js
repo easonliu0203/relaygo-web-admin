@@ -50,8 +50,19 @@ const nextConfig = {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
+      net: false,
+      tls: false,
+      crypto: false,
     };
-    
+
+    // 完全忽略 undici 套件，避免私有欄位語法錯誤
+    // undici 是 Firebase 的 Node.js 依賴，在瀏覽器環境不需要
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^undici$/,
+      })
+    );
+
     return config;
   },
   
