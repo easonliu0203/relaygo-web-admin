@@ -27,17 +27,26 @@ export class CustomerServiceChatService {
     onUpdate: (chats: CustomerServiceChat[]) => void,
     onError?: (error: Error) => void
   ): () => void {
-    const unsubscribe = async () => {
-      try {
-        await initializeFirebase();
-        if (!db) throw new Error('Firebase not initialized');
+    let unsubscribeFn: (() => void) | null = null;
 
+    const setupSubscription = async () => {
+      try {
+        console.log('🔄 開始初始化 Firebase...');
+        await initializeFirebase();
+
+        console.log('🔍 檢查 db 物件:', { hasDb: !!db });
+        if (!db) {
+          throw new Error('Firebase Firestore not initialized - db is null');
+        }
+
+        console.log('📡 設定客服對話訂閱...');
         const chatsRef = collection(db, 'customer_service_chats');
         const q = query(chatsRef, orderBy('lastMessageTime', 'desc'));
 
-        return onSnapshot(
+        unsubscribeFn = onSnapshot(
           q,
           (snapshot) => {
+            console.log('✅ 收到客服對話更新:', snapshot.docs.length, '個對話');
             const chats: CustomerServiceChat[] = snapshot.docs.map((doc) => {
               const data = doc.data();
               return {
@@ -55,24 +64,25 @@ export class CustomerServiceChatService {
             onUpdate(chats);
           },
           (error) => {
-            console.error('訂閱客服對話失敗:', error);
+            console.error('❌ 訂閱客服對話失敗:', error);
             onError?.(error as Error);
           }
         );
       } catch (error) {
-        console.error('初始化訂閱失敗:', error);
+        console.error('❌ 初始化訂閱失敗:', error);
         onError?.(error as Error);
-        return () => {};
       }
     };
 
-    let unsubscribeFn: (() => void) | null = null;
-    unsubscribe().then((fn) => {
-      unsubscribeFn = fn;
-    });
+    // 立即執行訂閱設定
+    setupSubscription();
 
+    // 返回取消訂閱函數
     return () => {
-      if (unsubscribeFn) unsubscribeFn();
+      if (unsubscribeFn) {
+        console.log('🔌 取消客服對話訂閱');
+        unsubscribeFn();
+      }
     };
   }
 
@@ -84,17 +94,26 @@ export class CustomerServiceChatService {
     onUpdate: (messages: ChatMessage[]) => void,
     onError?: (error: Error) => void
   ): () => void {
-    const unsubscribe = async () => {
-      try {
-        await initializeFirebase();
-        if (!db) throw new Error('Firebase not initialized');
+    let unsubscribeFn: (() => void) | null = null;
 
+    const setupSubscription = async () => {
+      try {
+        console.log('🔄 開始初始化 Firebase (訊息訂閱)...');
+        await initializeFirebase();
+
+        console.log('🔍 檢查 db 物件:', { hasDb: !!db });
+        if (!db) {
+          throw new Error('Firebase Firestore not initialized - db is null');
+        }
+
+        console.log('📡 設定訊息訂閱:', chatId);
         const messagesRef = collection(db, 'customer_service_chats', chatId, 'messages');
         const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
-        return onSnapshot(
+        unsubscribeFn = onSnapshot(
           q,
           (snapshot) => {
+            console.log('✅ 收到訊息更新:', snapshot.docs.length, '則訊息');
             const messages: ChatMessage[] = snapshot.docs.map((doc) => {
               const data = doc.data();
               return {
@@ -110,24 +129,25 @@ export class CustomerServiceChatService {
             onUpdate(messages);
           },
           (error) => {
-            console.error('訂閱訊息失敗:', error);
+            console.error('❌ 訂閱訊息失敗:', error);
             onError?.(error as Error);
           }
         );
       } catch (error) {
-        console.error('初始化訊息訂閱失敗:', error);
+        console.error('❌ 初始化訊息訂閱失敗:', error);
         onError?.(error as Error);
-        return () => {};
       }
     };
 
-    let unsubscribeFn: (() => void) | null = null;
-    unsubscribe().then((fn) => {
-      unsubscribeFn = fn;
-    });
+    // 立即執行訂閱設定
+    setupSubscription();
 
+    // 返回取消訂閱函數
     return () => {
-      if (unsubscribeFn) unsubscribeFn();
+      if (unsubscribeFn) {
+        console.log('🔌 取消訊息訂閱');
+        unsubscribeFn();
+      }
     };
   }
 

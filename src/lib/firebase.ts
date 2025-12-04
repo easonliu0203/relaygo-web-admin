@@ -17,7 +17,11 @@ export let messaging: any = null;
 
 // 初始化 Firebase (僅在客戶端)
 export const initializeFirebase = async () => {
-  if (typeof window === 'undefined' || firebaseApp) return;
+  // 只在伺服器端跳過
+  if (typeof window === 'undefined') return;
+
+  // 如果已經完全初始化，直接返回
+  if (firebaseApp && db) return;
 
   try {
     const { initializeApp, getApps } = await import('firebase/app');
@@ -28,6 +32,12 @@ export const initializeFirebase = async () => {
 
     auth = getAuth(firebaseApp);
     db = getFirestore(firebaseApp);
+
+    console.log('✅ Firebase initialized successfully', {
+      hasApp: !!firebaseApp,
+      hasAuth: !!auth,
+      hasDb: !!db
+    });
 
     // Storage 延遲載入 - 只在需要時才載入，避免 undici 相容性問題
     // storage 會在 initializeStorage() 中初始化
@@ -42,7 +52,8 @@ export const initializeFirebase = async () => {
       console.log('Firebase messaging not supported');
     }
   } catch (error) {
-    console.error('Firebase initialization failed:', error);
+    console.error('❌ Firebase initialization failed:', error);
+    throw error;
   }
 };
 
