@@ -11,6 +11,7 @@ import {
   CreditCardOutlined,
   SettingOutlined,
   BarChartOutlined,
+  RocketOutlined,
   LogoutOutlined,
   BellOutlined,
   MenuFoldOutlined,
@@ -82,12 +83,19 @@ const menuItems = [
     ],
   },
   {
+    key: '/marketing',
+    icon: <RocketOutlined />,
+    label: '廣告與行銷',
+    children: [
+      { key: '/settings/marketing', label: '訂單促成費' },
+    ],
+  },
+  {
     key: '/settings',
     icon: <SettingOutlined />,
     label: '系統設定',
     children: [
       { key: '/settings/pricing', label: '價格設定' },
-      { key: '/settings/marketing', label: '廣告與行銷' },
       { key: '/settings/tour-packages', label: '旅遊方案' },
       { key: '/settings/dispatch', label: '派單設定' },
       { key: '/settings/notifications', label: '通知設定' },
