@@ -34,6 +34,20 @@ const settingCategories = [
     ],
   },
   {
+    title: '廣告與行銷',
+    description: '管理行銷推廣相關的費用設定',
+    icon: <DollarOutlined />,
+    color: '#eb2f96',
+    path: '/settings/marketing',
+    status: 'configured',
+    items: [
+      '訂單促成費設定',
+      '推廣費用管理',
+      '網紅合作設定',
+      '行銷效益追蹤',
+    ],
+  },
+  {
     title: '派單設定',
     description: '配置司機派單規則和邏輯',
     icon: <CarOutlined />,
