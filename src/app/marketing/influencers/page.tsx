@@ -24,6 +24,7 @@ import {
   DeleteOutlined,
   CopyOutlined,
   InstagramOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -39,6 +40,7 @@ interface Influencer {
   discount_amount: number;
   discount_percentage_enabled: boolean;
   discount_percentage: number;
+  commission_per_order: number;
   account_username: string;
   bank_name: string | null;
   bank_code: string | null;
@@ -88,6 +90,9 @@ export default function InfluencersPage() {
   const handleAdd = () => {
     setEditingInfluencer(null);
     form.resetFields();
+    form.setFieldsValue({
+      commission_per_order: 0, // 預設推廣獎金為 0
+    });
     setModalVisible(true);
   };
 
@@ -199,6 +204,15 @@ export default function InfluencersPage() {
         ),
     },
     {
+      title: '推廣獎金',
+      dataIndex: 'commission_per_order',
+      key: 'commission_per_order',
+      width: 120,
+      render: (amount: number) => (
+        <Text>NT$ {amount?.toLocaleString() || 0}</Text>
+      ),
+    },
+    {
       title: '帳號',
       dataIndex: 'account_username',
       key: 'account_username',
@@ -225,10 +239,18 @@ export default function InfluencersPage() {
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 180,
       fixed: 'right',
       render: (_: any, record: Influencer) => (
         <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => window.location.href = `/marketing/influencers/${record.id}`}
+          >
+            詳情
+          </Button>
           <Button
             type="link"
             size="small"
@@ -407,6 +429,26 @@ export default function InfluencersPage() {
               </Form.Item>
               <Text type="secondary">（例如：5 代表 95 折）</Text>
             </Space>
+          </Form.Item>
+
+          <Form.Item
+            label="推廣獎金"
+            name="commission_per_order"
+            tooltip="每筆使用此優惠碼的訂單，網紅可獲得的固定獎金"
+            rules={[
+              { required: true, message: '請輸入推廣獎金' },
+              { type: 'number', min: 0, message: '推廣獎金不可為負數' },
+              { type: 'number', max: 10000, message: '推廣獎金不可超過 NT$ 10,000' },
+            ]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="例如：500"
+              prefix="NT$"
+              min={0}
+              max={10000}
+              precision={0}
+            />
           </Form.Item>
 
           <Form.Item
