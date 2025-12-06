@@ -88,7 +88,6 @@ const menuItems = [
     label: '廣告與行銷',
     children: [
       { key: '/marketing/influencers', label: '網紅管理' },
-      { key: '/settings/marketing', label: '訂單促成費' },
     ],
   },
   {

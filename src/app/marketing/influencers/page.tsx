@@ -311,7 +311,10 @@ export default function InfluencersPage() {
   return (
     <div style={{ padding: '24px' }}>
       <Title level={2}>網紅管理</Title>
-      <Paragraph>管理合作網紅資料、優惠碼設定與推廣成效追蹤</Paragraph>
+      <Paragraph>
+        管理合作網紅資料、優惠碼設定與推廣成效追蹤。
+        每個網紅可設定專屬的推廣獎金，當客戶使用該網紅的優惠碼下單時，系統會從司機收入中扣除推廣獎金並支付給網紅。
+      </Paragraph>
 
       {/* 功能按鈕 */}
       <Space style={{ marginBottom: 16 }}>
@@ -440,6 +443,11 @@ export default function InfluencersPage() {
               { type: 'number', min: 0, message: '推廣獎金不可為負數' },
               { type: 'number', max: 10000, message: '推廣獎金不可超過 NT$ 10,000' },
             ]}
+            extra={
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                此獎金會從司機收入中扣除。當客戶使用此優惠碼下單時，系統會支付此金額給網紅。
+              </Text>
+            }
           >
             <InputNumber
               style={{ width: '100%' }}
