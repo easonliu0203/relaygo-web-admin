@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Card, 
-  Table, 
-  Button, 
-  Typography, 
-  Space, 
+import {
+  Card,
+  Table,
+  Button,
+  Typography,
+  Space,
   message,
   Modal,
   Form,
@@ -14,24 +14,45 @@ import {
   InputNumber,
   Switch,
   Tag,
-  Popconfirm
+  Popconfirm,
+  Tabs,
+  Badge,
+  Divider,
+  Alert
 } from 'antd';
-import { 
+import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
   SaveOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
+  GlobalOutlined,
+  CheckCircleOutlined,
+  WarningOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+// 支援的語言列表
+const SUPPORTED_LANGUAGES = [
+  { code: 'zh-TW', name: '繁體中文', flag: '🇹🇼' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'ko', name: '한국어', flag: '🇰🇷' },
+  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'th', name: 'ไทย', flag: '🇹🇭' },
+  { code: 'ms', name: 'Bahasa Melayu', flag: '🇲🇾' },
+  { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
+];
+
 interface TourPackage {
   id: string;
   name: string;
   description: string;
+  name_i18n?: Record<string, string>;
+  description_i18n?: Record<string, string>;
   is_active: boolean;
   display_order: number;
   created_at: string;
@@ -45,9 +66,29 @@ export default function TourPackagesPage() {
   const [packages, setPackages] = useState<TourPackage[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPackage, setEditingPackage] = useState<TourPackage | null>(null);
+  const [activeTab, setActiveTab] = useState('zh-TW');
 
   // API Base URL
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.relaygo.pro';
+
+  // 計算翻譯完成度
+  const getTranslationCompleteness = (pkg: TourPackage) => {
+    const nameCount = Object.keys(pkg.name_i18n || {}).length;
+    const descCount = Object.keys(pkg.description_i18n || {}).length;
+    const total = SUPPORTED_LANGUAGES.length;
+    const completed = Math.min(nameCount, descCount);
+    return { completed, total, percentage: Math.round((completed / total) * 100) };
+  };
+
+  // 獲取翻譯狀態
+  const getTranslationStatus = (pkg: TourPackage, lang: string) => {
+    const hasName = !!(pkg.name_i18n && pkg.name_i18n[lang]);
+    const hasDesc = !!(pkg.description_i18n && pkg.description_i18n[lang]);
+
+    if (hasName && hasDesc) return 'complete';
+    if (hasName || hasDesc) return 'partial';
+    return 'empty';
+  };
 
   // 載入旅遊方案列表
   const loadPackages = async () => {
@@ -77,9 +118,21 @@ export default function TourPackagesPage() {
 
   // 開啟新增/編輯對話框
   const openModal = (pkg?: TourPackage) => {
+    setActiveTab('zh-TW'); // 重置到繁體中文標籤
+
     if (pkg) {
       setEditingPackage(pkg);
-      form.setFieldsValue(pkg);
+      // 設置基本欄位
+      form.setFieldsValue({
+        is_active: pkg.is_active,
+        display_order: pkg.display_order,
+      });
+
+      // 設置多語言欄位
+      SUPPORTED_LANGUAGES.forEach(lang => {
+        form.setFieldValue(['name_i18n', lang.code], pkg.name_i18n?.[lang.code] || '');
+        form.setFieldValue(['description_i18n', lang.code], pkg.description_i18n?.[lang.code] || '');
+      });
     } else {
       setEditingPackage(null);
       form.resetFields();
@@ -102,22 +155,48 @@ export default function TourPackagesPage() {
   const savePackage = async (values: any) => {
     setSaving(true);
     try {
-      const url = editingPackage 
+      // 構建多語言資料
+      const name_i18n: Record<string, string> = {};
+      const description_i18n: Record<string, string> = {};
+
+      SUPPORTED_LANGUAGES.forEach(lang => {
+        if (values.name_i18n?.[lang.code]) {
+          name_i18n[lang.code] = values.name_i18n[lang.code];
+        }
+        if (values.description_i18n?.[lang.code]) {
+          description_i18n[lang.code] = values.description_i18n[lang.code];
+        }
+      });
+
+      // 使用繁體中文作為預設 name 和 description
+      const defaultName = name_i18n['zh-TW'] || '';
+      const defaultDescription = description_i18n['zh-TW'] || '';
+
+      const payload = {
+        name: defaultName,
+        description: defaultDescription,
+        name_i18n,
+        description_i18n,
+        is_active: values.is_active,
+        display_order: values.display_order,
+      };
+
+      const url = editingPackage
         ? `${API_URL}/api/tour-packages/${editingPackage.id}`
         : `${API_URL}/api/tour-packages`;
-      
+
       const method = editingPackage ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         message.success(editingPackage ? '旅遊方案已更新' : '旅遊方案已新增');
         closeModal();
@@ -198,10 +277,10 @@ export default function TourPackagesPage() {
       title: '方案名稱',
       dataIndex: 'name',
       key: 'name',
-      render: (name: string) => (
+      render: (name: string, record: TourPackage) => (
         <Space>
           <EnvironmentOutlined />
-          <Text strong>{name}</Text>
+          <Text strong>{record.name_i18n?.['zh-TW'] || name}</Text>
         </Space>
       ),
     },
@@ -210,6 +289,29 @@ export default function TourPackagesPage() {
       dataIndex: 'description',
       key: 'description',
       ellipsis: true,
+      render: (description: string, record: TourPackage) => (
+        <Text ellipsis>{record.description_i18n?.['zh-TW'] || description}</Text>
+      ),
+    },
+    {
+      title: '翻譯完成度',
+      key: 'translation',
+      width: 150,
+      render: (_: any, record: TourPackage) => {
+        const { completed, total, percentage } = getTranslationCompleteness(record);
+        const isComplete = completed === total;
+
+        return (
+          <Space>
+            <Text>{completed}/{total}</Text>
+            {isComplete ? (
+              <Tag color="success" icon={<CheckCircleOutlined />}>完成</Tag>
+            ) : (
+              <Tag color="warning" icon={<WarningOutlined />}>{percentage}%</Tag>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: '狀態',
@@ -306,58 +408,127 @@ export default function TourPackagesPage() {
 
       {/* 新增/編輯對話框 */}
       <Modal
-        title={editingPackage ? '編輯旅遊方案' : '新增旅遊方案'}
+        title={
+          <Space>
+            <GlobalOutlined />
+            {editingPackage ? '編輯旅遊方案' : '新增旅遊方案'}
+          </Space>
+        }
         open={modalVisible}
         onCancel={closeModal}
         footer={null}
-        width={600}
+        width={800}
+        style={{ top: 20 }}
       >
         <Form
           form={form}
           layout="vertical"
           onFinish={savePackage}
         >
-          <Form.Item
-            label="方案名稱"
-            name="name"
-            rules={[{ required: true, message: '請輸入方案名稱' }]}
-          >
-            <Input placeholder="例如：台北一日遊" />
-          </Form.Item>
+          {/* 基本設定區塊 */}
+          <Card size="small" title="基本設定" className="mb-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item
+                label="顯示順序"
+                name="display_order"
+                rules={[{ required: true, message: '請輸入顯示順序' }]}
+              >
+                <InputNumber
+                  min={1}
+                  style={{ width: '100%' }}
+                  placeholder="數字越小越靠前"
+                />
+              </Form.Item>
 
-          <Form.Item
-            label="方案描述"
-            name="description"
-          >
-            <TextArea
-              rows={4}
-              placeholder="請輸入方案的詳細描述，包含主要景點和特色"
+              <Form.Item
+                label="啟用狀態"
+                name="is_active"
+                valuePropName="checked"
+              >
+                <Switch
+                  checkedChildren="啟用"
+                  unCheckedChildren="停用"
+                />
+              </Form.Item>
+            </div>
+          </Card>
+
+          {/* 多語言內容區塊 */}
+          <Card size="small" title={<Space><GlobalOutlined />多語言內容</Space>} className="mb-4">
+            <Alert
+              message="提示"
+              description="請至少填寫繁體中文的方案名稱和描述。其他語言為選填，可稍後補充。"
+              type="info"
+              showIcon
+              className="mb-4"
             />
-          </Form.Item>
 
-          <Form.Item
-            label="顯示順序"
-            name="display_order"
-            rules={[{ required: true, message: '請輸入顯示順序' }]}
-          >
-            <InputNumber
-              min={1}
-              style={{ width: '100%' }}
-              placeholder="數字越小越靠前"
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              items={SUPPORTED_LANGUAGES.map(lang => {
+                const status = editingPackage ? getTranslationStatus(editingPackage, lang.code) : 'empty';
+
+                return {
+                  key: lang.code,
+                  label: (
+                    <Space>
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                      {status === 'complete' && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                      {status === 'partial' && <WarningOutlined style={{ color: '#faad14' }} />}
+                    </Space>
+                  ),
+                  children: (
+                    <div className="py-4">
+                      <Form.Item
+                        label={`方案名稱 (${lang.name})`}
+                        name={['name_i18n', lang.code]}
+                        rules={lang.code === 'zh-TW' ? [{ required: true, message: '請輸入繁體中文方案名稱' }] : []}
+                      >
+                        <Input
+                          placeholder={`請輸入${lang.name}方案名稱`}
+                          prefix={<EnvironmentOutlined />}
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        label={`方案描述 (${lang.name})`}
+                        name={['description_i18n', lang.code]}
+                        rules={lang.code === 'zh-TW' ? [{ required: true, message: '請輸入繁體中文方案描述' }] : []}
+                      >
+                        <TextArea
+                          rows={4}
+                          placeholder={`請輸入${lang.name}方案的詳細描述，包含主要景點和特色`}
+                        />
+                      </Form.Item>
+
+                      {/* 翻譯狀態提示 */}
+                      <div className="text-sm text-gray-500">
+                        {status === 'complete' && (
+                          <Tag color="success" icon={<CheckCircleOutlined />}>
+                            翻譯完成
+                          </Tag>
+                        )}
+                        {status === 'partial' && (
+                          <Tag color="warning" icon={<WarningOutlined />}>
+                            部分完成
+                          </Tag>
+                        )}
+                        {status === 'empty' && (
+                          <Tag color="default">
+                            尚未翻譯
+                          </Tag>
+                        )}
+                      </div>
+                    </div>
+                  ),
+                };
+              })}
             />
-          </Form.Item>
+          </Card>
 
-          <Form.Item
-            label="啟用狀態"
-            name="is_active"
-            valuePropName="checked"
-          >
-            <Switch
-              checkedChildren="啟用"
-              unCheckedChildren="停用"
-            />
-          </Form.Item>
-
+          {/* 操作按鈕 */}
           <Form.Item className="mb-0">
             <Space className="w-full justify-end">
               <Button onClick={closeModal}>
