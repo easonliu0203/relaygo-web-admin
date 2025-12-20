@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Card, 
-  Table, 
-  Button, 
-  Typography, 
-  Space, 
+import {
+  Card,
+  Table,
+  Button,
+  Typography,
+  Space,
   message,
   Switch,
   InputNumber,
@@ -16,19 +16,26 @@ import {
   Tag,
   Modal,
   Form,
+  Tabs,
+  Badge,
+  Alert,
 } from 'antd';
-import { 
-  DollarOutlined, 
+import {
+  DollarOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
   SaveOutlined,
+  GlobalOutlined,
+  CarOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { createClient } from '@supabase/supabase-js';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { TextArea } = Input;
 
 // Supabase 客戶端
 const supabase = createClient(
@@ -36,11 +43,25 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
+// 支援的語言列表
+const SUPPORTED_LANGUAGES = [
+  { code: 'zh-TW', name: '繁體中文', flag: '🇹🇼' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'ko', name: '한국어', flag: '🇰🇷' },
+  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'th', name: 'ไทย', flag: '🇹🇭' },
+  { code: 'ms', name: 'Bahasa Melayu', flag: '🇲🇾' },
+  { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
+];
+
 interface VehiclePricing {
   id: string;
   vehicle_type: string;
   vehicle_description: string;
+  vehicle_description_i18n?: Record<string, string>;
   capacity_info: string;
+  capacity_info_i18n?: Record<string, string>;
   duration_hours: number;
   base_price: number;
   overtime_rate: number;
@@ -70,7 +91,27 @@ export default function PricingSettingsPage() {
   const [editingKey, setEditingKey] = useState<string>('');
   const [editingRecord, setEditingRecord] = useState<VehiclePricing | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('zh-TW');
   const [form] = Form.useForm();
+
+  // 計算翻譯完成度
+  const getTranslationCompleteness = (pricing: VehiclePricing) => {
+    const descCount = Object.keys(pricing.vehicle_description_i18n || {}).length;
+    const capacityCount = Object.keys(pricing.capacity_info_i18n || {}).length;
+    const total = SUPPORTED_LANGUAGES.length;
+    const completed = Math.min(descCount, capacityCount);
+    return { completed, total, percentage: Math.round((completed / total) * 100) };
+  };
+
+  // 獲取翻譯狀態
+  const getTranslationStatus = (pricing: VehiclePricing, lang: string) => {
+    const hasDesc = !!(pricing.vehicle_description_i18n && pricing.vehicle_description_i18n[lang]);
+    const hasCapacity = !!(pricing.capacity_info_i18n && pricing.capacity_info_i18n[lang]);
+
+    if (hasDesc && hasCapacity) return 'complete';
+    if (hasDesc || hasCapacity) return 'partial';
+    return 'empty';
+  };
 
   // 載入價格配置
   const loadPricingList = async () => {
@@ -127,12 +168,31 @@ export default function PricingSettingsPage() {
 
   // 開啟新增/編輯 Modal
   const showModal = (record?: VehiclePricing) => {
+    setActiveTab('zh-TW'); // 重置到繁體中文標籤
+
     if (record) {
       setEditingRecord(record);
-      form.setFieldsValue(record);
+      form.setFieldsValue({
+        vehicle_type: record.vehicle_type,
+        duration_hours: record.duration_hours,
+        base_price: record.base_price,
+        overtime_rate: record.overtime_rate,
+        display_order: record.display_order,
+        is_active: record.is_active,
+      });
+
+      // 設置多語言欄位
+      SUPPORTED_LANGUAGES.forEach(lang => {
+        form.setFieldValue(['vehicle_description_i18n', lang.code], record.vehicle_description_i18n?.[lang.code] || '');
+        form.setFieldValue(['capacity_info_i18n', lang.code], record.capacity_info_i18n?.[lang.code] || '');
+      });
     } else {
       setEditingRecord(null);
       form.resetFields();
+      form.setFieldsValue({
+        is_active: true,
+        display_order: pricingList.length + 1,
+      });
     }
     setIsModalVisible(true);
   };
@@ -140,11 +200,41 @@ export default function PricingSettingsPage() {
   // 儲存方案
   const handleSave = async (values: any) => {
     try {
+      // 構建多語言資料
+      const vehicle_description_i18n: Record<string, string> = {};
+      const capacity_info_i18n: Record<string, string> = {};
+
+      SUPPORTED_LANGUAGES.forEach(lang => {
+        if (values.vehicle_description_i18n?.[lang.code]) {
+          vehicle_description_i18n[lang.code] = values.vehicle_description_i18n[lang.code];
+        }
+        if (values.capacity_info_i18n?.[lang.code]) {
+          capacity_info_i18n[lang.code] = values.capacity_info_i18n[lang.code];
+        }
+      });
+
+      // 使用繁體中文作為預設 vehicle_description 和 capacity_info
+      const defaultVehicleDescription = vehicle_description_i18n['zh-TW'] || '';
+      const defaultCapacityInfo = capacity_info_i18n['zh-TW'] || '';
+
+      const payload = {
+        vehicle_type: values.vehicle_type,
+        vehicle_description: defaultVehicleDescription,
+        vehicle_description_i18n,
+        capacity_info: defaultCapacityInfo,
+        capacity_info_i18n,
+        duration_hours: values.duration_hours,
+        base_price: values.base_price,
+        overtime_rate: values.overtime_rate,
+        display_order: values.display_order,
+        is_active: values.is_active,
+      };
+
       if (editingRecord) {
         // 更新
         const { error } = await supabase
           .from('vehicle_pricing')
-          .update(values)
+          .update(payload)
           .eq('id', editingRecord.id);
 
         if (error) throw error;
@@ -153,7 +243,7 @@ export default function PricingSettingsPage() {
         // 新增
         const { error } = await supabase
           .from('vehicle_pricing')
-          .insert([values]);
+          .insert([payload]);
 
         if (error) throw error;
         message.success('新增成功');
@@ -210,12 +300,48 @@ export default function PricingSettingsPage() {
       dataIndex: 'vehicle_description',
       key: 'vehicle_description',
       width: 150,
+      render: (description: string, record: VehiclePricing) => (
+        <Space>
+          <CarOutlined />
+          <Text>{record.vehicle_description_i18n?.['zh-TW'] || description}</Text>
+        </Space>
+      ),
     },
     {
       title: '內容描述',
       dataIndex: 'capacity_info',
       key: 'capacity_info',
       width: 150,
+      render: (capacity: string, record: VehiclePricing) => (
+        <Space>
+          <TeamOutlined />
+          <Text>{record.capacity_info_i18n?.['zh-TW'] || capacity}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: '翻譯完成度',
+      key: 'translation',
+      width: 150,
+      render: (_: any, record: VehiclePricing) => {
+        const { completed, total, percentage } = getTranslationCompleteness(record);
+        let color = 'default';
+        if (percentage === 100) color = 'success';
+        else if (percentage >= 50) color = 'processing';
+        else if (percentage > 0) color = 'warning';
+
+        return (
+          <Space>
+            <Badge
+              count={`${completed}/${total}`}
+              style={{
+                backgroundColor: color === 'success' ? '#52c41a' : color === 'processing' ? '#1890ff' : color === 'warning' ? '#faad14' : '#d9d9d9'
+              }}
+            />
+            <Text type="secondary">{percentage}%</Text>
+          </Space>
+        );
+      },
     },
     {
       title: '時長',
@@ -325,7 +451,7 @@ export default function PricingSettingsPage() {
           form.resetFields();
         }}
         footer={null}
-        width={600}
+        width={800}
       >
         <Form
           form={form}
@@ -336,94 +462,137 @@ export default function PricingSettingsPage() {
             display_order: pricingList.length + 1,
           }}
         >
-          <Form.Item
-            label="車型等級"
-            name="vehicle_type"
-            rules={[{ required: true, message: '請選擇車型等級' }]}
-          >
-            <Select placeholder="請選擇車型等級">
-              {VEHICLE_TYPE_OPTIONS.map(opt => (
-                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
+          {/* 基本設定區塊 */}
+          <Card size="small" title="基本設定" className="mb-4">
+            <Form.Item
+              label="車型等級"
+              name="vehicle_type"
+              rules={[{ required: true, message: '請選擇車型等級' }]}
+            >
+              <Select placeholder="請選擇車型等級">
+                {VEHICLE_TYPE_OPTIONS.map(opt => (
+                  <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            label="車型描述"
-            name="vehicle_description"
-            rules={[{ required: true, message: '請輸入車型描述' }]}
-          >
-            <Input placeholder="例如：CAMRY 等車型" />
-          </Form.Item>
+            <Form.Item
+              label="時長設定"
+              name="duration_hours"
+              rules={[{ required: true, message: '請選擇時長' }]}
+            >
+              <Select placeholder="請選擇時長">
+                {DURATION_OPTIONS.map(opt => (
+                  <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            label="內容描述"
-            name="capacity_info"
-            rules={[{ required: true, message: '請輸入內容描述' }]}
-          >
-            <Input placeholder="例如：最多3人，2個行李" />
-          </Form.Item>
+            <Form.Item
+              label="價格設定 (新台幣)"
+              name="base_price"
+              rules={[{ required: true, message: '請輸入價格' }]}
+            >
+              <InputNumber
+                min={0}
+                precision={0}
+                addonBefore="NT$"
+                style={{ width: '100%' }}
+                placeholder="例如：3800"
+              />
+            </Form.Item>
 
-          <Form.Item
-            label="時長設定"
-            name="duration_hours"
-            rules={[{ required: true, message: '請選擇時長' }]}
-          >
-            <Select placeholder="請選擇時長">
-              {DURATION_OPTIONS.map(opt => (
-                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
+            <Form.Item
+              label="超時費/小時 (新台幣)"
+              name="overtime_rate"
+              rules={[{ required: true, message: '請輸入超時費' }]}
+            >
+              <InputNumber
+                min={0}
+                precision={0}
+                addonBefore="NT$"
+                addonAfter="/小時"
+                style={{ width: '100%' }}
+                placeholder="例如：350"
+              />
+            </Form.Item>
 
-          <Form.Item
-            label="價格設定 (新台幣)"
-            name="base_price"
-            rules={[{ required: true, message: '請輸入價格' }]}
-          >
-            <InputNumber
-              min={0}
-              precision={0}
-              addonBefore="NT$"
-              style={{ width: '100%' }}
-              placeholder="例如：3800"
+            <Form.Item
+              label="顯示順序"
+              name="display_order"
+              rules={[{ required: true, message: '請輸入顯示順序' }]}
+            >
+              <InputNumber
+                min={0}
+                style={{ width: '100%' }}
+                placeholder="數字越小越靠前"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="狀態"
+              name="is_active"
+              valuePropName="checked"
+            >
+              <Switch checkedChildren="啟用" unCheckedChildren="停用" />
+            </Form.Item>
+          </Card>
+
+          {/* 多語言內容區塊 */}
+          <Card size="small" title={<Space><GlobalOutlined />多語言內容</Space>} className="mb-4">
+            <Alert
+              message="提示"
+              description="請至少填寫繁體中文的車型描述和內容描述。其他語言為選填，可稍後補充。"
+              type="info"
+              showIcon
+              className="mb-4"
             />
-          </Form.Item>
 
-          <Form.Item
-            label="超時費/小時 (新台幣)"
-            name="overtime_rate"
-            rules={[{ required: true, message: '請輸入超時費' }]}
-          >
-            <InputNumber
-              min={0}
-              precision={0}
-              addonBefore="NT$"
-              addonAfter="/小時"
-              style={{ width: '100%' }}
-              placeholder="例如：350"
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              items={SUPPORTED_LANGUAGES.map(lang => {
+                const status = editingRecord ? getTranslationStatus(editingRecord, lang.code) : 'empty';
+
+                return {
+                  key: lang.code,
+                  label: (
+                    <Space>
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                      {status === 'complete' && <Badge status="success" />}
+                      {status === 'partial' && <Badge status="warning" />}
+                    </Space>
+                  ),
+                  children: (
+                    <div className="py-4">
+                      <Form.Item
+                        label={`車型描述 (${lang.name})`}
+                        name={['vehicle_description_i18n', lang.code]}
+                        rules={lang.code === 'zh-TW' ? [{ required: true, message: '請輸入繁體中文車型描述' }] : []}
+                      >
+                        <Input
+                          placeholder={`請輸入${lang.name}車型描述，例如：CAMRY 等車型`}
+                          prefix={<CarOutlined />}
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        label={`內容描述 (${lang.name})`}
+                        name={['capacity_info_i18n', lang.code]}
+                        rules={lang.code === 'zh-TW' ? [{ required: true, message: '請輸入繁體中文內容描述' }] : []}
+                      >
+                        <TextArea
+                          rows={3}
+                          placeholder={`請輸入${lang.name}內容描述，例如：最多3人，2個行李`}
+                        />
+                      </Form.Item>
+                    </div>
+                  ),
+                };
+              })}
             />
-          </Form.Item>
-
-          <Form.Item
-            label="顯示順序"
-            name="display_order"
-            rules={[{ required: true, message: '請輸入顯示順序' }]}
-          >
-            <InputNumber
-              min={0}
-              style={{ width: '100%' }}
-              placeholder="數字越小越靠前"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="狀態"
-            name="is_active"
-            valuePropName="checked"
-          >
-            <Switch checkedChildren="啟用" unCheckedChildren="停用" />
-          </Form.Item>
+          </Card>
 
           <Form.Item>
             <Space>
