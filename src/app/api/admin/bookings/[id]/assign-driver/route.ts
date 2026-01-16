@@ -10,9 +10,11 @@ import { DatabaseService } from '@/lib/supabase';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    // ✅ 支援 Next.js 14+ 的 async params
+    const params = await Promise.resolve(context.params);
     const bookingId = params.id;
     const body = await request.json();
     const { driverId } = body;
@@ -33,9 +35,12 @@ export async function POST(
     }
 
     // ✅ 使用 service role key 以獲得完整權限
+    console.log('🔧 初始化 DatabaseService...');
     const db = new DatabaseService(true);
+    console.log('✅ DatabaseService 初始化成功');
 
     // 1. 獲取訂單資訊
+    console.log('📖 步驟 1: 獲取訂單資訊...');
     const { data: booking, error: bookingError } = await db.supabase
       .from('bookings')
       .select('*')
@@ -45,14 +50,15 @@ export async function POST(
     if (bookingError || !booking) {
       console.error('❌ 獲取訂單失敗:', bookingError);
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '訂單不存在', 
-          details: bookingError?.message 
+          error: '訂單不存在',
+          details: bookingError?.message
         },
         { status: 404 }
       );
     }
+    console.log('✅ 訂單資訊:', { id: booking.id, status: booking.status, vehicle_type: booking.vehicle_type });
 
     // 2. 檢查訂單是否已分配司機
     if (booking.driver_id) {
@@ -61,6 +67,7 @@ export async function POST(
     }
 
     // 3. 獲取司機資訊
+    console.log('📖 步驟 3: 獲取司機資訊...');
     const { data: driver, error: driverError } = await db.supabase
       .from('users')
       .select(`
@@ -83,25 +90,64 @@ export async function POST(
         { status: 404 }
       );
     }
+    console.log('✅ 司機資訊:', { id: driver.id, role: driver.role, roles: driver.roles });
 
     // 3.5. 獲取司機詳細資訊（從 drivers 表）
-    const { data: driverInfo, error: driverInfoError } = await db.supabase
+    console.log('📖 步驟 3.5: 獲取司機詳細資訊...');
+    let { data: driverInfo, error: driverInfoError } = await db.supabase
       .from('drivers')
       .select('id, vehicle_type, is_available')
       .eq('user_id', driverId)
       .single();
 
-    if (driverInfoError || !driverInfo) {
+    console.log('查詢結果:', { driverInfo, error: driverInfoError });
+
+    // ✅ 如果司機在 drivers 表中沒有記錄，自動創建一個預設記錄
+    if (driverInfoError && driverInfoError.code === 'PGRST116') {
+      console.log('⚠️ 司機在 drivers 表中沒有記錄，自動創建預設記錄');
+
+      const { data: newDriverInfo, error: createError } = await db.supabase
+        .from('drivers')
+        .insert({
+          user_id: driverId,
+          vehicle_type: booking.vehicle_type || 'small', // 使用訂單的車型或預設為 small
+          is_available: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select('id, vehicle_type, is_available')
+        .single();
+
+      if (createError) {
+        console.error('❌ 創建司機記錄失敗:', createError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: '無法創建司機資料',
+            details: createError.message
+          },
+          { status: 500 }
+        );
+      }
+
+      driverInfo = newDriverInfo;
+      console.log('✅ 成功創建司機記錄:', driverInfo);
+    } else if (driverInfoError || !driverInfo) {
       console.error('❌ 獲取司機詳細資訊失敗:', driverInfoError);
+      console.error('錯誤代碼:', driverInfoError?.code);
+      console.error('錯誤詳情:', driverInfoError?.details);
+      console.error('錯誤提示:', driverInfoError?.hint);
       return NextResponse.json(
         {
           success: false,
           error: '司機資料不完整',
-          details: driverInfoError?.message
+          details: driverInfoError?.message,
+          errorCode: driverInfoError?.code
         },
         { status: 400 }
       );
     }
+    console.log('✅ 司機詳細資訊:', driverInfo);
 
     // 4. 檢查司機是否可用
     if (!driverInfo.is_available) {
@@ -200,11 +246,13 @@ export async function POST(
 
   } catch (error) {
     console.error('❌ API 錯誤:', error);
+    console.error('錯誤堆疊:', error instanceof Error ? error.stack : 'N/A');
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: '內部伺服器錯誤', 
-        details: error instanceof Error ? error.message : '未知錯誤' 
+        error: '內部伺服器錯誤',
+        details: error instanceof Error ? error.message : '未知錯誤',
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined
       },
       { status: 500 }
     );
