@@ -65,12 +65,7 @@ export async function POST(
       .select(`
         id,
         role,
-        roles,
-        drivers!user_id (
-          id,
-          vehicle_type,
-          is_available
-        )
+        roles
       `)
       .eq('id', driverId)
       .contains('roles', ['driver']) // ✅ 修復：檢查 roles 陣列是否包含 'driver'，支援多角色用戶
@@ -79,22 +74,29 @@ export async function POST(
     if (driverError || !driver) {
       console.error('❌ 獲取司機失敗:', driverError);
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '司機不存在', 
-          details: driverError?.message 
+          error: '司機不存在',
+          details: driverError?.message
         },
         { status: 404 }
       );
     }
 
-    const driverInfo = driver.drivers?.[0] || driver.drivers;
+    // 3.5. 獲取司機詳細資訊（從 drivers 表）
+    const { data: driverInfo, error: driverInfoError } = await db.supabase
+      .from('drivers')
+      .select('id, vehicle_type, is_available')
+      .eq('user_id', driverId)
+      .single();
 
-    if (!driverInfo) {
+    if (driverInfoError || !driverInfo) {
+      console.error('❌ 獲取司機詳細資訊失敗:', driverInfoError);
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '司機資料不完整' 
+          error: '司機資料不完整',
+          details: driverInfoError?.message
         },
         { status: 400 }
       );
