@@ -24,15 +24,16 @@ export async function POST(
 
     if (!driverId) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '缺少司機 ID' 
+          error: '缺少司機 ID'
         },
         { status: 400 }
       );
     }
 
-    const db = new DatabaseService();
+    // ✅ 使用 service role key 以獲得完整權限
+    const db = new DatabaseService(true);
 
     // 1. 獲取訂單資訊
     const { data: booking, error: bookingError } = await db.supabase
