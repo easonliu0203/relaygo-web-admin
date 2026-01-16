@@ -159,21 +159,21 @@ export class DatabaseService {
   }
 
   // 預約相關查詢
-  async getBookings(filters?: { 
-    status?: string; 
-    customerId?: string; 
-    driverId?: string; 
+  async getBookings(filters?: {
+    status?: string;
+    customerId?: string;
+    driverId?: string;
     startDate?: string;
     endDate?: string;
-    limit?: number; 
+    limit?: number;
     offset?: number;
   }) {
     let query = this.client
       .from(TABLES.BOOKINGS)
       .select(`
         *,
-        customer:customer_id (id, name, email, phone),
-        driver:driver_id (id, name, email, phone, vehicle_type, vehicle_number)
+        customer:customer_id (id, email, phone),
+        driver:driver_id (id, email, phone)
       `);
 
     if (filters?.status) {
@@ -206,8 +206,8 @@ export class DatabaseService {
       .from(TABLES.BOOKINGS)
       .select(`
         *,
-        customer:customer_id (id, name, email, phone),
-        driver:driver_id (id, name, email, phone, vehicle_type, vehicle_number),
+        customer:customer_id (id, email, phone),
+        driver:driver_id (id, email, phone),
         payments (*)
       `)
       .eq('id', id)
