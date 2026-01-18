@@ -88,6 +88,7 @@ const menuItems = [
     label: '廣告與行銷',
     children: [
       { key: '/marketing/influencers', label: '網紅管理' },
+      { key: '/marketing/affiliates', label: '客戶推廣人管理' },
     ],
   },
   {
