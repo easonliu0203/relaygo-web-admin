@@ -139,17 +139,21 @@ export default function InfluencersPage() {
       dataIndex: 'id',
       key: 'id',
       width: 100,
-      render: (id: string) => (
-        <Tooltip title="點擊複製完整 ID">
-          <Button
-            type="link"
-            size="small"
-            icon={<CopyOutlined />}
-            onClick={() => copyToClipboard(id)}
-          >
-            {id.substring(0, 8)}...
-          </Button>
-        </Tooltip>
+      render: (id: string | null) => (
+        id ? (
+          <Tooltip title="點擊複製完整 ID">
+            <Button
+              type="link"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => copyToClipboard(id)}
+            >
+              {id.substring(0, 8)}...
+            </Button>
+          </Tooltip>
+        ) : (
+          <Text type="secondary">-</Text>
+        )
       ),
     },
     {

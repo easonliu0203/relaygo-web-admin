@@ -58,13 +58,13 @@ interface Referral {
   id: string;
   referee_id: string;
   referee_name: string;
-  first_booking_id: string;
+  first_booking_id: string | null;
   created_at: string;
 }
 
 interface CommissionRecord {
   id: string;
-  booking_id: string;
+  booking_id: string | null;
   order_amount: number;
   commission_amount: number;
   commission_type: 'fixed' | 'percent';
@@ -181,7 +181,7 @@ export default function AffiliateDetailPage() {
       title: '首次訂單 ID',
       dataIndex: 'first_booking_id',
       key: 'first_booking_id',
-      render: (id: string) => <Text code>{id.substring(0, 8)}...</Text>,
+      render: (id: string | null) => id ? <Text code>{id.substring(0, 8)}...</Text> : <Text type="secondary">-</Text>,
     },
     {
       title: '推薦時間',
@@ -197,7 +197,7 @@ export default function AffiliateDetailPage() {
       title: '訂單 ID',
       dataIndex: 'booking_id',
       key: 'booking_id',
-      render: (id: string) => <Text code>{id.substring(0, 8)}...</Text>,
+      render: (id: string | null) => id ? <Text code>{id.substring(0, 8)}...</Text> : <Text type="secondary">-</Text>,
     },
     {
       title: '訂單金額',
