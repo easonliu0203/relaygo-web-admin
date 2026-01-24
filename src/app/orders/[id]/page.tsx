@@ -227,6 +227,11 @@ export default function OrderDetailPage() {
                 <Tag color="blue">固定金額</Tag>
               ) : order.influencerCommissionType === 'percent' ? (
                 <Tag color="green">百分比</Tag>
+              ) : order.influencerCommissionType === 'both' ? (
+                <>
+                  <Tag color="blue">固定金額</Tag>
+                  <Tag color="green">百分比</Tag>
+                </>
               ) : '-'}
             </Descriptions.Item>
             <Descriptions.Item label="佣金參數">
@@ -234,6 +239,8 @@ export default function OrderDetailPage() {
                 ? `NT$ ${(order.influencerCommissionFixed || 0).toLocaleString()}`
                 : order.influencerCommissionType === 'percent'
                 ? `${order.influencerCommissionRate || 0}%`
+                : order.influencerCommissionType === 'both'
+                ? `NT$ ${(order.influencerCommissionFixed || 0).toLocaleString()} + ${order.influencerCommissionRate || 0}%`
                 : '-'
               }
             </Descriptions.Item>
@@ -247,6 +254,8 @@ export default function OrderDetailPage() {
                 ? `固定金額佣金：NT$ ${(order.influencerCommissionFixed || 0).toLocaleString()}`
                 : order.influencerCommissionType === 'percent'
                 ? `訂單金額 NT$ ${(order.pricing?.totalAmount || 0).toLocaleString()} × ${order.influencerCommissionRate || 0}% = NT$ ${(order.influencerCommission || 0).toLocaleString()}`
+                : order.influencerCommissionType === 'both'
+                ? `固定金額 NT$ ${(order.influencerCommissionFixed || 0).toLocaleString()} + 訂單金額 NT$ ${(order.pricing?.totalAmount || 0).toLocaleString()} × ${order.influencerCommissionRate || 0}% = NT$ ${(order.influencerCommission || 0).toLocaleString()}`
                 : '-'
               }
             </Descriptions.Item>
