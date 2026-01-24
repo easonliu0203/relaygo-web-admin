@@ -31,9 +31,14 @@ export default function RevenueShareSettingsPage() {
   const loadSettings = async () => {
     setLoading(true);
     try {
+      // 使用 admin_token（與其他頁面一致）
+      const token = typeof window !== 'undefined'
+        ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
+        : null;
+
       const response = await fetch('/api/admin/revenue-share-settings', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -67,11 +72,16 @@ export default function RevenueShareSettingsPage() {
   const saveScenario1 = async (values: any) => {
     setSaving(true);
     try {
+      // 使用 admin_token（與其他頁面一致）
+      const token = typeof window !== 'undefined'
+        ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
+        : null;
+
       const response = await fetch('/api/admin/revenue-share-settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           scenario: 'no_promo',
@@ -99,11 +109,16 @@ export default function RevenueShareSettingsPage() {
   const saveScenario2 = async (values: any) => {
     setSaving(true);
     try {
+      // 使用 admin_token（與其他頁面一致）
+      const token = typeof window !== 'undefined'
+        ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
+        : null;
+
       const response = await fetch('/api/admin/revenue-share-settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           scenario: 'with_promo',
