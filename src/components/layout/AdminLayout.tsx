@@ -98,6 +98,7 @@ const menuItems = [
     children: [
       { key: '/settings/pricing', label: '價格設定' },
       { key: '/settings/tour-packages', label: '旅遊方案' },
+      { key: '/settings/revenue-share', label: '分成設定' },
       { key: '/settings/dispatch', label: '派單設定' },
       { key: '/settings/notifications', label: '通知設定' },
     ],
