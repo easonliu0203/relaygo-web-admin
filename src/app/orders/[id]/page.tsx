@@ -216,6 +216,44 @@ export default function OrderDetailPage() {
         </Descriptions>
       </Card>
 
+      {/* 推廣者佣金資訊 */}
+      {order.influencerId && (
+        <Card title={<><DollarOutlined /> 推廣者佣金資訊</>}>
+          <Descriptions bordered column={2}>
+            <Descriptions.Item label="推廣者 ID">{order.influencerId || '-'}</Descriptions.Item>
+            <Descriptions.Item label="優惠碼">{order.promoCode || '-'}</Descriptions.Item>
+            <Descriptions.Item label="佣金類型">
+              {order.influencerCommissionType === 'fixed' ? (
+                <Tag color="blue">固定金額</Tag>
+              ) : order.influencerCommissionType === 'percent' ? (
+                <Tag color="green">百分比</Tag>
+              ) : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="佣金參數">
+              {order.influencerCommissionType === 'fixed'
+                ? `NT$ ${(order.influencerCommissionFixed || 0).toLocaleString()}`
+                : order.influencerCommissionType === 'percent'
+                ? `${order.influencerCommissionRate || 0}%`
+                : '-'
+              }
+            </Descriptions.Item>
+            <Descriptions.Item label="計算佣金">
+              <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
+                NT$ {(order.influencerCommission || 0).toLocaleString()}
+              </span>
+            </Descriptions.Item>
+            <Descriptions.Item label="計算說明" span={1}>
+              {order.influencerCommissionType === 'fixed'
+                ? `固定金額佣金：NT$ ${(order.influencerCommissionFixed || 0).toLocaleString()}`
+                : order.influencerCommissionType === 'percent'
+                ? `訂單金額 NT$ ${(order.pricing?.totalAmount || 0).toLocaleString()} × ${order.influencerCommissionRate || 0}% = NT$ ${(order.influencerCommission || 0).toLocaleString()}`
+                : '-'
+              }
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+      )}
+
       {/* 其他資訊 */}
       <Card title={<><ClockCircleOutlined /> 其他資訊</>}>
         <Descriptions bordered column={2}>
