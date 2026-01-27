@@ -35,6 +35,8 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 
 // 常數定義
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.relaygo.pro';
+
 const SERVICE_TYPES = {
   charter: '包車旅遊',
   instant_ride: '即時派車'
@@ -137,7 +139,7 @@ export default function RevenueShareConfigsPage() {
       if (filters.has_promo_code !== undefined) queryParams.append('has_promo_code', String(filters.has_promo_code));
       if (filters.is_active !== undefined) queryParams.append('is_active', String(filters.is_active));
 
-      const response = await fetch(`/api/admin/revenue-share-configs?${queryParams}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/revenue-share-configs?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -189,8 +191,8 @@ export default function RevenueShareConfigsPage() {
         : null;
 
       const url = editingConfig
-        ? `/api/admin/revenue-share-configs/${editingConfig.id}`
-        : '/api/admin/revenue-share-configs';
+        ? `${API_BASE_URL}/api/admin/revenue-share-configs/${editingConfig.id}`
+        : `${API_BASE_URL}/api/admin/revenue-share-configs`;
 
       const method = editingConfig ? 'PUT' : 'POST';
 
@@ -229,7 +231,7 @@ export default function RevenueShareConfigsPage() {
         ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
         : null;
 
-      const response = await fetch(`/api/admin/revenue-share-configs/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/revenue-share-configs/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
