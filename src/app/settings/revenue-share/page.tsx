@@ -595,9 +595,17 @@ export default function RevenueShareConfigsPage() {
             </Col>
             <Col span={12}>
               <Form.Item
-                label="優惠碼狀態"
+                label={
+                  <span>
+                    優惠碼狀態
+                    <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                      (影響推廣者佣金)
+                    </span>
+                  </span>
+                }
                 name="has_promo_code"
                 valuePropName="checked"
+                tooltip="開啟時，訂單使用優惠碼會產生推廣者佣金，從公司基準百分比中扣除"
               >
                 <Switch
                   checkedChildren="使用優惠碼"
@@ -610,8 +618,16 @@ export default function RevenueShareConfigsPage() {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label="公司抽成比例 (%)"
+                label={
+                  <span>
+                    公司抽成比例 (%)
+                    <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                      (平台服務費)
+                    </span>
+                  </span>
+                }
                 name="company_percentage"
+                tooltip="公司從訂單中抽取的百分比，用於平台營運成本"
                 rules={[
                   { required: true, message: '請輸入公司抽成比例' },
                   { type: 'number', min: 0, max: 100, message: '比例必須在 0-100 之間' }
@@ -622,6 +638,7 @@ export default function RevenueShareConfigsPage() {
                   max={100}
                   precision={0}
                   style={{ width: '100%' }}
+                  placeholder="例如: 25"
                   onChange={(value) => {
                     if (value !== null) {
                       form.setFieldValue('driver_percentage', 100 - value);
@@ -632,8 +649,16 @@ export default function RevenueShareConfigsPage() {
             </Col>
             <Col span={12}>
               <Form.Item
-                label="司機收入比例 (%)"
+                label={
+                  <span>
+                    司機收入比例 (%)
+                    <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                      (自動計算)
+                    </span>
+                  </span>
+                }
                 name="driver_percentage"
+                tooltip="司機獲得的收入百分比，會自動計算為 100% - 公司抽成比例"
                 rules={[
                   { required: true, message: '請輸入司機收入比例' },
                   { type: 'number', min: 0, max: 100, message: '比例必須在 0-100 之間' }
@@ -659,9 +684,30 @@ export default function RevenueShareConfigsPage() {
             {({ getFieldValue }) =>
               getFieldValue('has_promo_code') ? (
                 <Form.Item
-                  label="公司基準百分比 (%)"
+                  label={
+                    <span>
+                      公司基準百分比 (%)
+                      <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                        (推廣者佣金會從此扣除)
+                      </span>
+                    </span>
+                  }
                   name="company_base_percentage"
-                  tooltip="使用優惠碼時的公司基準百分比，推廣者佣金從此扣除"
+                  tooltip={{
+                    title: (
+                      <div>
+                        <div><strong>使用場景：</strong>僅在有優惠碼時使用</div>
+                        <div style={{ marginTop: '8px' }}><strong>計算邏輯：</strong></div>
+                        <div>• 公司基準金額 = 訂單金額 × 公司基準百分比</div>
+                        <div>• 推廣者佣金 = 訂單金額 × 推廣者佣金率 (通常 5%)</div>
+                        <div>• 公司實際收入 = 公司基準金額 - 推廣者佣金</div>
+                        <div style={{ marginTop: '8px' }}><strong>範例：</strong></div>
+                        <div>訂單 1000 元，基準 30%，推廣者 5%</div>
+                        <div>→ 公司基準 300 元，推廣者 50 元，公司實際 250 元</div>
+                      </div>
+                    ),
+                    overlayStyle: { maxWidth: '400px' }
+                  }}
                   rules={[
                     { required: true, message: '請輸入公司基準百分比' },
                     { type: 'number', min: 0, max: 100, message: '比例必須在 0-100 之間' }
@@ -672,6 +718,7 @@ export default function RevenueShareConfigsPage() {
                     max={100}
                     precision={0}
                     style={{ width: '100%' }}
+                    placeholder="例如: 30 (表示 30%)"
                   />
                 </Form.Item>
               ) : null
@@ -681,13 +728,35 @@ export default function RevenueShareConfigsPage() {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label="優先級"
+                label={
+                  <span>
+                    優先級
+                    <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                      (數字越大優先級越高)
+                    </span>
+                  </span>
+                }
                 name="priority"
-                tooltip="數字越大優先級越高，用於解決衝突"
+                tooltip={{
+                  title: (
+                    <div>
+                      <div><strong>使用場景：</strong>當多個配置符合同一訂單時，選擇優先級最高的配置</div>
+                      <div style={{ marginTop: '8px' }}><strong>建議值：</strong></div>
+                      <div>• 全國通用配置：0 (預設)</div>
+                      <div>• 特定地區配置：10</div>
+                      <div>• 特殊活動配置：20</div>
+                      <div style={{ marginTop: '8px' }}><strong>範例：</strong></div>
+                      <div>台灣全國配置 (優先級 0) vs 台北市配置 (優先級 10)</div>
+                      <div>→ 台北市的訂單會使用優先級 10 的配置</div>
+                    </div>
+                  ),
+                  overlayStyle: { maxWidth: '400px' }
+                }}
               >
                 <InputNumber
                   min={0}
                   style={{ width: '100%' }}
+                  placeholder="預設: 0"
                 />
               </Form.Item>
             </Col>
