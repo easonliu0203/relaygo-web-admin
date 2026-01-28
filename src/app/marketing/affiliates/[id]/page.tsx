@@ -44,6 +44,10 @@ interface Affiliate {
   commission_percent: number;
   is_commission_fixed_active: boolean;
   is_commission_percent_active: boolean;
+  // ✅ 新增：服務類型維度分潤欄位
+  commission_type: 'unified' | 'by_service_type';
+  commission_percent_charter: number | null;
+  commission_percent_instant_ride: number | null;
   total_referrals: number;
   total_earnings: number;
   is_active: boolean;
@@ -393,7 +397,20 @@ export default function AffiliateDetailPage() {
           </Descriptions.Item>
           <Descriptions.Item label="百分比分潤">
             {affiliate.is_commission_percent_active ? (
-              <Tag color="purple">啟用 - {affiliate.commission_percent}%</Tag>
+              <>
+                {affiliate.commission_type === 'by_service_type' ? (
+                  <>
+                    <Tag color="blue" style={{ marginBottom: 4 }}>依服務類型</Tag><br />
+                    <Tag color="purple">包車旅遊: {affiliate.commission_percent_charter ?? 0}%</Tag><br />
+                    <Tag color="cyan">即時派車: {affiliate.commission_percent_instant_ride ?? 0}%</Tag>
+                  </>
+                ) : (
+                  <>
+                    <Tag color="blue" style={{ marginBottom: 4 }}>統一比例</Tag><br />
+                    <Tag color="purple">{affiliate.commission_percent}%</Tag>
+                  </>
+                )}
+              </>
             ) : (
               <Tag>未啟用</Tag>
             )}

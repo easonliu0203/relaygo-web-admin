@@ -19,6 +19,8 @@ import {
   Row,
   Col,
   Statistic,
+  Radio,
+  Divider,
 } from 'antd';
 import {
   ReloadOutlined,
@@ -52,6 +54,10 @@ interface Affiliate {
   commission_percent: number;
   is_commission_fixed_active: boolean;
   is_commission_percent_active: boolean;
+  // ✅ 新增：服務類型維度分潤欄位
+  commission_type: 'unified' | 'by_service_type';
+  commission_percent_charter: number | null;
+  commission_percent_instant_ride: number | null;
   total_referrals: number;
   total_earnings: number;
   is_active: boolean;
@@ -183,6 +189,10 @@ export default function AffiliatesPage() {
       is_commission_fixed_active: record.is_commission_fixed_active,
       is_commission_percent_active: record.is_commission_percent_active,
       is_active: record.is_active,
+      // ✅ 新增：服務類型維度分潤欄位
+      commission_type: record.commission_type || 'unified',
+      commission_percent_charter: record.commission_percent_charter,
+      commission_percent_instant_ride: record.commission_percent_instant_ride,
     });
     setEditModalVisible(true);
   };
@@ -280,14 +290,23 @@ export default function AffiliatesPage() {
     {
       title: '分潤設定',
       key: 'commission',
-      width: 150,
+      width: 180,
       render: (_, record) => (
         <Space direction="vertical" size="small">
           {record.is_commission_fixed_active && (
             <Tag color="orange">固定 NT$ {record.commission_fixed}</Tag>
           )}
           {record.is_commission_percent_active && (
-            <Tag color="purple">{record.commission_percent}% 分潤</Tag>
+            <>
+              {record.commission_type === 'by_service_type' ? (
+                <>
+                  <Tag color="purple">包車 {record.commission_percent_charter ?? 0}%</Tag>
+                  <Tag color="cyan">派車 {record.commission_percent_instant_ride ?? 0}%</Tag>
+                </>
+              ) : (
+                <Tag color="purple">{record.commission_percent}% 分潤</Tag>
+              )}
+            </>
           )}
           {!record.is_commission_fixed_active && !record.is_commission_percent_active && (
             <Text type="secondary">無分潤</Text>
@@ -575,6 +594,8 @@ export default function AffiliatesPage() {
           </Row>
 
           <Title level={5} style={{ marginTop: 16 }}>分潤設定</Title>
+
+          {/* 固定金額分潤 */}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -599,19 +620,83 @@ export default function AffiliatesPage() {
               >
                 <Switch />
               </Form.Item>
-              <Form.Item
-                name="commission_percent"
-                label="分潤百分比 (%)"
-              >
-                <InputNumber min={0} max={100} style={{ width: '100%' }} />
-              </Form.Item>
             </Col>
           </Row>
+
+          {/* ✅ 新增：百分比分潤類型選擇器 */}
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.is_commission_percent_active !== curr.is_commission_percent_active}>
+            {({ getFieldValue }) => {
+              const isPercentActive = getFieldValue('is_commission_percent_active');
+              if (!isPercentActive) return null;
+
+              return (
+                <>
+                  <Divider orientation="left" style={{ marginTop: 8 }}>百分比分潤設定</Divider>
+
+                  <Form.Item
+                    name="commission_type"
+                    label="分潤模式"
+                    tooltip="統一比例：所有服務類型使用相同百分比。依服務類型：包車旅遊和即時派車可設定不同百分比。"
+                  >
+                    <Radio.Group>
+                      <Radio value="unified">統一比例</Radio>
+                      <Radio value="by_service_type">依服務類型</Radio>
+                    </Radio.Group>
+                  </Form.Item>
+
+                  <Form.Item noStyle shouldUpdate={(prev, curr) => prev.commission_type !== curr.commission_type}>
+                    {({ getFieldValue: getField }) => {
+                      const commissionType = getField('commission_type');
+
+                      if (commissionType === 'by_service_type') {
+                        return (
+                          <Row gutter={16}>
+                            <Col span={12}>
+                              <Form.Item
+                                name="commission_percent_charter"
+                                label="包車旅遊分潤 (%)"
+                                tooltip="適用於包車旅遊訂單的分潤百分比"
+                                rules={[{ required: true, message: '請輸入包車旅遊分潤百分比' }]}
+                              >
+                                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 5" />
+                              </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                              <Form.Item
+                                name="commission_percent_instant_ride"
+                                label="即時派車分潤 (%)"
+                                tooltip="適用於即時派車訂單的分潤百分比"
+                                rules={[{ required: true, message: '請輸入即時派車分潤百分比' }]}
+                              >
+                                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 3" />
+                              </Form.Item>
+                            </Col>
+                          </Row>
+                        );
+                      }
+
+                      // 統一比例模式
+                      return (
+                        <Form.Item
+                          name="commission_percent"
+                          label="分潤百分比 (%)"
+                          tooltip="所有服務類型使用相同的分潤百分比"
+                        >
+                          <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 5" />
+                        </Form.Item>
+                      );
+                    }}
+                  </Form.Item>
+                </>
+              );
+            }}
+          </Form.Item>
 
           <Form.Item
             name="is_active"
             label="啟用狀態"
             valuePropName="checked"
+            style={{ marginTop: 16 }}
           >
             <Switch checkedChildren="啟用" unCheckedChildren="停用" />
           </Form.Item>
