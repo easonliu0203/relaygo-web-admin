@@ -2,18 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  Card, 
-  Form, 
-  Input, 
-  Select, 
+import {
+  Card,
+  Form,
+  Input,
+  Select,
   Switch,
-  Button, 
-  Space, 
-  Spin, 
-  message, 
+  Checkbox,
+  Button,
+  Space,
+  Spin,
+  message,
   Divider,
 } from 'antd';
+
+// 服務類型常數
+const SERVICE_TYPES = {
+  CHARTER: 'charter',           // 包車旅遊
+  INSTANT_RIDE: 'instant_ride'  // 即時派車
+} as const;
 import {
   ArrowLeftOutlined,
   SaveOutlined,
@@ -45,6 +52,7 @@ export default function DriverEditPage() {
         form.setFieldsValue({
           status: response.data.status,
           isAvailable: response.data.isAvailable,
+          serviceTypes: response.data.serviceTypes || [SERVICE_TYPES.CHARTER, SERVICE_TYPES.INSTANT_RIDE],
           email: response.data.email,
           phone: response.data.phone,
           firstName: response.data.firstName,
@@ -148,6 +156,34 @@ export default function DriverEditPage() {
             />
           </Form.Item>
 
+          <Form.Item
+            label="此司機可接受的服務類型"
+            name="serviceTypes"
+            rules={[
+              { required: true, message: '請至少選擇一種服務類型' },
+              {
+                validator: (_, value) => {
+                  if (!value || value.length === 0) {
+                    return Promise.reject('請至少選擇一種服務類型');
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
+            extra="選擇此司機可以接受的訂單類型，至少選擇一種"
+          >
+            <Checkbox.Group>
+              <Space direction="vertical">
+                <Checkbox value={SERVICE_TYPES.CHARTER}>
+                  包車旅遊 (Charter Service)
+                </Checkbox>
+                <Checkbox value={SERVICE_TYPES.INSTANT_RIDE}>
+                  即時派單 A→B 點 (Instant Ride)
+                </Checkbox>
+              </Space>
+            </Checkbox.Group>
+          </Form.Item>
+
           <Divider orientation="left">基本資訊</Divider>
 
           <Form.Item
@@ -193,6 +229,15 @@ export default function DriverEditPage() {
             <li><strong>可接單 (TRUE)</strong>：司機可以接收新訂單</li>
             <li><strong>不可接單 (FALSE)</strong>：司機無法接收新訂單</li>
           </ul>
+          <Divider />
+          <p><strong>服務類型說明：</strong></p>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            <li><strong>包車旅遊 (Charter)</strong>：司機可接受包車旅遊訂單</li>
+            <li><strong>即時派單 (Instant Ride)</strong>：司機可接受 A→B 點即時派單</li>
+          </ul>
+          <p className="text-gray-600 mt-2">
+            司機可以同時接受兩種服務類型，但必須至少選擇一種。
+          </p>
           <Divider />
           <p><strong>恢復已刪除帳號：</strong></p>
           <p className="text-gray-600">

@@ -107,6 +107,7 @@ export async function GET(
       vehicleColor: driverInfo?.vehicle_color || '',
       vehicleCapacity: driverInfo?.vehicle_capacity || null,
       isAvailable: driverInfo?.is_available || false,
+      serviceTypes: driverInfo?.service_types || ['charter', 'instant_ride'],
       backgroundCheckStatus: driverInfo?.background_check_status || 'pending',
       rating: driverInfo?.rating || 0,
       totalTrips: driverInfo?.total_trips || totalTrips,
@@ -208,9 +209,10 @@ export async function PUT(
     }
 
     // 更新司機專屬資料
-    if (body.licenseNumber || body.vehicleType || body.vehiclePlate || body.vehicleModel || 
-        body.vehicleYear || body.vehicleColor || body.vehicleCapacity || 
-        body.isAvailable !== undefined || body.backgroundCheckStatus) {
+    if (body.licenseNumber || body.vehicleType || body.vehiclePlate || body.vehicleModel ||
+        body.vehicleYear || body.vehicleColor || body.vehicleCapacity ||
+        body.isAvailable !== undefined || body.backgroundCheckStatus ||
+        body.serviceTypes !== undefined) {
       const driverUpdates: any = {};
       if (body.licenseNumber !== undefined) driverUpdates.license_number = body.licenseNumber;
       if (body.vehicleType !== undefined) driverUpdates.vehicle_type = body.vehicleType;
@@ -221,6 +223,7 @@ export async function PUT(
       if (body.vehicleCapacity !== undefined) driverUpdates.vehicle_capacity = body.vehicleCapacity;
       if (body.isAvailable !== undefined) driverUpdates.is_available = body.isAvailable;
       if (body.backgroundCheckStatus !== undefined) driverUpdates.background_check_status = body.backgroundCheckStatus;
+      if (body.serviceTypes !== undefined) driverUpdates.service_types = body.serviceTypes;
 
       const { error: driverError } = await db.supabase
         .from('drivers')
