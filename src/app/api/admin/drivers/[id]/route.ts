@@ -158,6 +158,7 @@ export async function PUT(
     const body = await request.json();
 
     console.log('📋 更新司機資訊:', { driverId, body });
+    console.log('📋 serviceTypes 值:', body.serviceTypes, '類型:', typeof body.serviceTypes);
 
     const db = new DatabaseService(true); // 使用 service_role key
 
@@ -209,10 +210,14 @@ export async function PUT(
     }
 
     // 更新司機專屬資料
-    if (body.licenseNumber || body.vehicleType || body.vehiclePlate || body.vehicleModel ||
+    const shouldUpdateDriver = body.licenseNumber || body.vehicleType || body.vehiclePlate || body.vehicleModel ||
         body.vehicleYear || body.vehicleColor || body.vehicleCapacity ||
         body.isAvailable !== undefined || body.backgroundCheckStatus ||
-        body.serviceTypes !== undefined) {
+        body.serviceTypes !== undefined;
+
+    console.log('📋 是否需要更新司機專屬資料:', shouldUpdateDriver);
+
+    if (shouldUpdateDriver) {
       const driverUpdates: any = {};
       if (body.licenseNumber !== undefined) driverUpdates.license_number = body.licenseNumber;
       if (body.vehicleType !== undefined) driverUpdates.vehicle_type = body.vehicleType;
@@ -224,6 +229,8 @@ export async function PUT(
       if (body.isAvailable !== undefined) driverUpdates.is_available = body.isAvailable;
       if (body.backgroundCheckStatus !== undefined) driverUpdates.background_check_status = body.backgroundCheckStatus;
       if (body.serviceTypes !== undefined) driverUpdates.service_types = body.serviceTypes;
+
+      console.log('📋 司機專屬資料更新內容:', driverUpdates);
 
       const { error: driverError } = await db.supabase
         .from('drivers')
@@ -237,6 +244,8 @@ export async function PUT(
           { status: 500 }
         );
       }
+
+      console.log('✅ 司機專屬資料更新成功');
     }
 
     console.log('✅ 成功更新司機資訊:', { driverId });
