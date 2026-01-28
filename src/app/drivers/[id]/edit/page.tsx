@@ -48,11 +48,15 @@ export default function DriverEditPage() {
 
       if (response.success) {
         setDriver(response.data);
+        console.log('📋 載入司機資料:', response.data);
+        console.log('📋 serviceTypes:', response.data.serviceTypes);
         // 設定表單初始值
         form.setFieldsValue({
           status: response.data.status,
           isAvailable: response.data.isAvailable,
           serviceTypes: response.data.serviceTypes || [SERVICE_TYPES.CHARTER, SERVICE_TYPES.INSTANT_RIDE],
+          backgroundCheckStatus: response.data.backgroundCheckStatus || 'pending',
+          vehicleType: response.data.vehicleType || '',
           email: response.data.email,
           phone: response.data.phone,
           firstName: response.data.firstName,
@@ -182,6 +186,31 @@ export default function DriverEditPage() {
                 </Checkbox>
               </Space>
             </Checkbox.Group>
+          </Form.Item>
+
+          <Form.Item
+            label="審核狀態"
+            name="backgroundCheckStatus"
+            extra="司機的背景審查狀態"
+          >
+            <Select placeholder="請選擇審核狀態">
+              <Option value="pending">待審核 (Pending)</Option>
+              <Option value="approved">已通過 (Approved)</Option>
+              <Option value="rejected">已拒絕 (Rejected)</Option>
+            </Select>
+          </Form.Item>
+
+          <Divider orientation="left">車輛資訊</Divider>
+
+          <Form.Item
+            label="車型分類"
+            name="vehicleType"
+            extra="選擇司機的車輛類型"
+          >
+            <Select placeholder="請選擇車型分類" allowClear>
+              <Option value="small">小型車（3-4人座）</Option>
+              <Option value="large">大型車（8-9人座）</Option>
+            </Select>
           </Form.Item>
 
           <Divider orientation="left">基本資訊</Divider>
