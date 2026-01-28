@@ -43,6 +43,8 @@ interface DriverAffiliate {
   commission_fixed: number;
   commission_percent_enabled: boolean;
   commission_percent: number;
+  commission_percent_charter: number | null;
+  commission_percent_instant_ride: number | null;
   total_referrals: number;
   total_earnings: number;
   is_active: boolean;
@@ -249,6 +251,8 @@ export default function DriverAffiliatesPage() {
                   commission_fixed: record.commission_fixed,
                   commission_percent_enabled: record.commission_percent_enabled,
                   commission_percent: record.commission_percent,
+                  commission_percent_charter: record.commission_percent_charter,
+                  commission_percent_instant_ride: record.commission_percent_instant_ride,
                   is_active: record.is_active,
                 });
                 setEditModalVisible(true);
@@ -425,13 +429,24 @@ export default function DriverAffiliatesPage() {
           >
             {({ getFieldValue }) =>
               getFieldValue('commission_percent_enabled') && (
-                <Form.Item
-                  name="commission_percent"
-                  label="分潤百分比 (%)"
-                  rules={[{ required: true, message: '請輸入分潤百分比' }]}
-                >
-                  <InputNumber min={0} max={100} style={{ width: '100%' }} />
-                </Form.Item>
+                <>
+                  <Form.Item
+                    name="commission_percent_charter"
+                    label="包車旅遊分潤百分比 (%)"
+                    rules={[{ required: true, message: '請輸入包車旅遊分潤百分比' }]}
+                    extra="適用於 service_type = 'charter' 的訂單"
+                  >
+                    <InputNumber min={0} max={100} precision={2} style={{ width: '100%' }} placeholder="例如：1.5" />
+                  </Form.Item>
+                  <Form.Item
+                    name="commission_percent_instant_ride"
+                    label="即時派單 A→B 點分潤百分比 (%)"
+                    rules={[{ required: true, message: '請輸入即時派單分潤百分比' }]}
+                    extra="適用於 service_type = 'instant_ride' 的訂單"
+                  >
+                    <InputNumber min={0} max={100} precision={2} style={{ width: '100%' }} placeholder="例如：2.0" />
+                  </Form.Item>
+                </>
               )
             }
           </Form.Item>
