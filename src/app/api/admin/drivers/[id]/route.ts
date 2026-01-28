@@ -218,7 +218,16 @@ export async function PUT(
     console.log('📋 是否需要更新司機專屬資料:', shouldUpdateDriver);
 
     if (shouldUpdateDriver) {
-      const driverUpdates: any = {};
+      // 先檢查 drivers 表中是否有該司機的記錄
+      const { data: existingDriver } = await db.supabase
+        .from('drivers')
+        .select('id')
+        .eq('user_id', driverId)
+        .single();
+
+      const driverUpdates: any = {
+        user_id: driverId, // 確保 user_id 存在（用於 upsert）
+      };
       if (body.licenseNumber !== undefined) driverUpdates.license_number = body.licenseNumber;
       if (body.vehicleType !== undefined) driverUpdates.vehicle_type = body.vehicleType;
       if (body.vehiclePlate !== undefined) driverUpdates.vehicle_plate = body.vehiclePlate;
@@ -231,11 +240,25 @@ export async function PUT(
       if (body.serviceTypes !== undefined) driverUpdates.service_types = body.serviceTypes;
 
       console.log('📋 司機專屬資料更新內容:', driverUpdates);
+      console.log('📋 現有司機記錄:', existingDriver ? '存在' : '不存在');
 
-      const { error: driverError } = await db.supabase
-        .from('drivers')
-        .update(driverUpdates)
-        .eq('user_id', driverId);
+      let driverError;
+
+      if (existingDriver) {
+        // 如果記錄存在，使用 update
+        const result = await db.supabase
+          .from('drivers')
+          .update(driverUpdates)
+          .eq('user_id', driverId);
+        driverError = result.error;
+      } else {
+        // 如果記錄不存在，使用 insert 創建新記錄
+        console.log('📋 創建新的司機記錄...');
+        const result = await db.supabase
+          .from('drivers')
+          .insert(driverUpdates);
+        driverError = result.error;
+      }
 
       if (driverError) {
         console.error('❌ 更新司機專屬資料失敗:', driverError);
