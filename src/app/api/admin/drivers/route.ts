@@ -175,7 +175,10 @@ export async function GET(request: NextRequest) {
         vehicleModel: driverInfo?.vehicle_model || '',
         vehicleYear: driverInfo?.vehicle_year || null,
         isAvailable: driverInfo?.is_available || false,
-        driverStatus: driverInfo?.background_check_status || 'pending',
+        // ✅ 修復：優先使用 review_status（新欄位），fallback 到 background_check_status（舊欄位）
+        driverStatus: driverInfo?.review_status || driverInfo?.background_check_status || 'not_submitted',
+        reviewStatus: driverInfo?.review_status || 'not_submitted',
+        reviewSubmittedAt: driverInfo?.review_submitted_at || null,
         rating: driverInfo?.rating || 0,
         totalTrips: driverInfo?.total_trips || 0,
         location: '', // 需要從其他表查詢
