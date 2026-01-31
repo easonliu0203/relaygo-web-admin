@@ -97,11 +97,12 @@ export async function POST(
     }
 
     // 3. 記錄審核日誌（可選）
-    const statusText = {
+    const statusTextMap: Record<string, string> = {
       approved: '審核通過',
       rejected: '審核失敗',
       missing_documents: '需補件',
-    }[status];
+    };
+    const statusText = statusTextMap[status] || status;
 
     console.log(`✅ 司機審核完成: ${driverId} -> ${statusText}`);
 
