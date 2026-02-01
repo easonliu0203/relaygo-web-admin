@@ -106,9 +106,9 @@ interface InstantRidePricing {
   region: string;
   base_fare: number;
   base_distance_km: number;
-  fare_per_km: number;
+  fare_per_200m: number;           // 每 200 公尺費率（台北市規定 5 元）
   fare_per_minute: number;
-  night_surcharge_rate: number;
+  night_surcharge_amount: number;  // 夜間加成固定金額（台北市規定 20 元）
   night_start_hour: number;
   night_end_hour: number;
   surge_multiplier: number;
@@ -215,9 +215,9 @@ export default function InstantRidePricingPage() {
         seat_capacity: 4,
         base_fare: 85,
         base_distance_km: 1.25,
-        fare_per_km: 25,
+        fare_per_200m: 5,           // 每 200 公尺費率（台北市規定 5 元）
         fare_per_minute: 5,
-        night_surcharge_rate: 0.2,
+        night_surcharge_amount: 20,  // 夜間加成固定金額（台北市規定 20 元）
         night_start_hour: 23,
         night_end_hour: 6,
         surge_multiplier: 1.0,
@@ -458,21 +458,21 @@ export default function InstantRidePricingPage() {
       render: (val: number) => `${val} km`,
     },
     {
-      title: '每公里',
-      dataIndex: 'fare_per_km',
-      key: 'fare_per_km',
+      title: '每200m',
+      dataIndex: 'fare_per_200m',
+      key: 'fare_per_200m',
       width: 80,
       align: 'right',
-      render: (val: number) => `$${val}`,
+      render: (val: number) => `$${val || 5}`,
     },
     {
       title: '夜間加成',
-      dataIndex: 'night_surcharge_rate',
-      key: 'night_surcharge_rate',
-      width: 90,
+      dataIndex: 'night_surcharge_amount',
+      key: 'night_surcharge_amount',
+      width: 100,
       align: 'center',
       render: (val: number, record) => (
-        <Tag color="purple">{Math.round(val * 100)}% ({record.night_start_hour}:00-{record.night_end_hour}:00)</Tag>
+        <Tag color="purple">+${val || 20} ({record.night_start_hour}:00-{record.night_end_hour}:00)</Tag>
       ),
     },
     {
@@ -677,20 +677,20 @@ export default function InstantRidePricingPage() {
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item label="每公里費率 (NT$)" name="fare_per_km" rules={[{ required: true }]}>
+              <Form.Item label="每200公尺費率 (NT$)" name="fare_per_200m" rules={[{ required: true }]} tooltip="台北市規定每 200 公尺 5 元">
                 <InputNumber min={0} precision={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={6}>
-              <Form.Item label="每分鐘費率 (NT$)" name="fare_per_minute">
+              <Form.Item label="每分鐘費率 (NT$)" name="fare_per_minute" tooltip="延滯計時費（車速低於 5km/h 時）">
                 <InputNumber min={0} precision={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item label="夜間加成比例" name="night_surcharge_rate" tooltip="例如 0.2 表示加成 20%">
-                <InputNumber min={0} max={1} precision={2} step={0.05} style={{ width: '100%' }} />
+              <Form.Item label="夜間加成 (NT$)" name="night_surcharge_amount" tooltip="台北市規定夜間加收固定 20 元">
+                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={6}>
