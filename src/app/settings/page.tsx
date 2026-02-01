@@ -48,6 +48,20 @@ const settingCategories = [
     ],
   },
   {
+    title: '即時派車價格',
+    description: '管理即時派車的區域化計費參數',
+    icon: <CarOutlined />,
+    color: '#13c2c2',
+    path: '/settings/instant-ride-pricing',
+    status: 'configured',
+    items: [
+      '車型價格配置',
+      '區域計費設定',
+      '夜間加成設定',
+      '尖峰時段倍數',
+    ],
+  },
+  {
     title: '派單設定',
     description: '配置司機派單規則和邏輯',
     icon: <CarOutlined />,
