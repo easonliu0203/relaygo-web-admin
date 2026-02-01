@@ -20,8 +20,10 @@ import {
   Statistic,
   Divider,
   Tabs,
-  Typography
+  Typography,
+  DatePicker
 } from 'antd';
+import dayjs from 'dayjs';
 import {
   PlusOutlined,
   EditOutlined,
@@ -111,6 +113,10 @@ interface InstantRidePricing {
   night_end_hour: number;
   surge_multiplier: number;
   min_fare: number;
+  spring_festival_surcharge?: number;
+  spring_festival_start_date?: string;
+  spring_festival_end_date?: string;
+  spring_festival_enabled?: boolean;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -124,6 +130,7 @@ interface PreviewResult {
     distance_fare: number;
     time_fare: number;
     night_surcharge: number;
+    spring_festival_surcharge?: number;
     surge_multiplier: number;
   };
 }
@@ -190,7 +197,13 @@ export default function InstantRidePricingPage() {
   const openModal = (config?: InstantRidePricing) => {
     if (config) {
       setEditingConfig(config);
-      form.setFieldsValue(config);
+      // 處理日期欄位轉換為 dayjs 物件
+      const formValues = {
+        ...config,
+        spring_festival_start_date: config.spring_festival_start_date ? dayjs(config.spring_festival_start_date) : null,
+        spring_festival_end_date: config.spring_festival_end_date ? dayjs(config.spring_festival_end_date) : null,
+      };
+      form.setFieldsValue(formValues);
       setSelectedCountry(config.country);
     } else {
       setEditingConfig(null);
@@ -210,7 +223,9 @@ export default function InstantRidePricingPage() {
         surge_multiplier: 1.0,
         min_fare: 0,
         display_order: 0,
-        is_active: true
+        is_active: true,
+        spring_festival_surcharge: 30,
+        spring_festival_enabled: false
       });
       setSelectedCountry('TW');
     }
@@ -230,16 +245,25 @@ export default function InstantRidePricingPage() {
 
       const method = editingConfig ? 'PUT' : 'POST';
 
+      // 處理日期欄位轉換為 YYYY-MM-DD 字串
+      const payload = {
+        ...values,
+        spring_festival_start_date: values.spring_festival_start_date
+          ? dayjs(values.spring_festival_start_date).format('YYYY-MM-DD')
+          : null,
+        spring_festival_end_date: values.spring_festival_end_date
+          ? dayjs(values.spring_festival_end_date).format('YYYY-MM-DD')
+          : null,
+        updated_by: 'admin'
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...values,
-          updated_by: 'admin'
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -450,6 +474,21 @@ export default function InstantRidePricingPage() {
       render: (val: number, record) => (
         <Tag color="purple">{Math.round(val * 100)}% ({record.night_start_hour}:00-{record.night_end_hour}:00)</Tag>
       ),
+    },
+    {
+      title: '春節加成',
+      dataIndex: 'spring_festival_enabled',
+      key: 'spring_festival',
+      width: 100,
+      align: 'center',
+      render: (enabled: boolean, record) => {
+        if (!enabled) return <Tag color="default">未啟用</Tag>;
+        return (
+          <Tag color="red">
+            +${record.spring_festival_surcharge || 30}
+          </Tag>
+        );
+      },
     },
     {
       title: '尖峰倍數',
@@ -683,6 +722,29 @@ export default function InstantRidePricingPage() {
             </Col>
             <Col span={6}>
               <Form.Item label="啟用狀態" name="is_active" valuePropName="checked">
+                <Switch checkedChildren="啟用" unCheckedChildren="停用" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Divider>春節加成設定</Divider>
+          <Row gutter={16}>
+            <Col span={6}>
+              <Form.Item label="春節加成 (NT$)" name="spring_festival_surcharge" tooltip="每趟次加收固定金額（台北市規定 30 元）">
+                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item label="開始日期" name="spring_festival_start_date" tooltip="春節假期起始日往前加 3 天">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item label="結束日期" name="spring_festival_end_date" tooltip="春節連假最後 1 日">
+                <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item label="啟用春節加成" name="spring_festival_enabled" valuePropName="checked">
                 <Switch checkedChildren="啟用" unCheckedChildren="停用" />
               </Form.Item>
             </Col>
