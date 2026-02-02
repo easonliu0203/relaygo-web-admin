@@ -50,6 +50,10 @@ interface Affiliate {
   discount_amount: number;
   discount_percentage_enabled: boolean;
   discount_percentage: number;
+  // ✅ 新增：服務類型維度折扣欄位
+  discount_type: 'unified' | 'by_service_type';
+  discount_percent_charter: number | null;
+  discount_percent_instant_ride: number | null;
   commission_fixed: number;
   commission_percent: number;
   is_commission_fixed_active: boolean;
@@ -184,12 +188,16 @@ export default function AffiliatesPage() {
       discount_amount: record.discount_amount,
       discount_percentage_enabled: record.discount_percentage_enabled,
       discount_percentage: record.discount_percentage,
+      // ✅ 新增：服務類型維度折扣欄位
+      discount_type: record.discount_type || 'unified',
+      discount_percent_charter: record.discount_percent_charter,
+      discount_percent_instant_ride: record.discount_percent_instant_ride,
       commission_fixed: record.commission_fixed,
       commission_percent: record.commission_percent,
       is_commission_fixed_active: record.is_commission_fixed_active,
       is_commission_percent_active: record.is_commission_percent_active,
       is_active: record.is_active,
-      // ✅ 新增：服務類型維度分潤欄位
+      // ✅ 服務類型維度分潤欄位
       commission_type: record.commission_type || 'unified',
       commission_percent_charter: record.commission_percent_charter,
       commission_percent_instant_ride: record.commission_percent_instant_ride,
@@ -584,14 +592,77 @@ export default function AffiliatesPage() {
               >
                 <Switch />
               </Form.Item>
-              <Form.Item
-                name="discount_percentage"
-                label="折扣百分比 (%)"
-              >
-                <InputNumber min={0} max={100} style={{ width: '100%' }} />
-              </Form.Item>
             </Col>
           </Row>
+
+          {/* ✅ 新增：百分比折扣類型選擇器 */}
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.discount_percentage_enabled !== curr.discount_percentage_enabled}>
+            {({ getFieldValue }) => {
+              const isPercentActive = getFieldValue('discount_percentage_enabled');
+              if (!isPercentActive) return null;
+
+              return (
+                <>
+                  <Divider orientation="left" style={{ marginTop: 8 }}>百分比折扣設定</Divider>
+
+                  <Form.Item
+                    name="discount_type"
+                    label="折扣模式"
+                    tooltip="統一比例：所有服務類型使用相同百分比。依服務類型：包車旅遊和即時派車可設定不同百分比。"
+                  >
+                    <Radio.Group>
+                      <Radio value="unified">統一比例</Radio>
+                      <Radio value="by_service_type">依服務類型</Radio>
+                    </Radio.Group>
+                  </Form.Item>
+
+                  <Form.Item noStyle shouldUpdate={(prev, curr) => prev.discount_type !== curr.discount_type}>
+                    {({ getFieldValue: getField }) => {
+                      const discountType = getField('discount_type');
+
+                      if (discountType === 'by_service_type') {
+                        return (
+                          <Row gutter={16}>
+                            <Col span={12}>
+                              <Form.Item
+                                name="discount_percent_charter"
+                                label="包車旅遊折扣 (%)"
+                                tooltip="適用於包車旅遊訂單的折扣百分比"
+                                rules={[{ required: true, message: '請輸入包車旅遊折扣百分比' }]}
+                              >
+                                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 10" />
+                              </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                              <Form.Item
+                                name="discount_percent_instant_ride"
+                                label="即時派車折扣 (%)"
+                                tooltip="適用於即時派車訂單的折扣百分比"
+                                rules={[{ required: true, message: '請輸入即時派車折扣百分比' }]}
+                              >
+                                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 5" />
+                              </Form.Item>
+                            </Col>
+                          </Row>
+                        );
+                      }
+
+                      // 統一比例模式
+                      return (
+                        <Form.Item
+                          name="discount_percentage"
+                          label="折扣百分比 (%)"
+                          tooltip="所有服務類型使用相同的折扣百分比"
+                        >
+                          <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 5" />
+                        </Form.Item>
+                      );
+                    }}
+                  </Form.Item>
+                </>
+              );
+            }}
+          </Form.Item>
 
           <Title level={5} style={{ marginTop: 16 }}>分潤設定</Title>
 
