@@ -58,11 +58,31 @@ export async function GET(
       console.warn('⚠️ 獲取司機專屬資料失敗:', driverError);
     }
 
-    // 獲取司機的訂單統計
+    // 獲取司機的訂單統計（包含完整財務欄位作為快照，避免歷史資料被修改）
     const { data: bookings, error: bookingsError } = await db.supabase
       .from('bookings')
-      .select('id, status, total_amount, created_at')
-      .eq('driver_id', driverId);
+      .select(`
+        id,
+        status,
+        total_amount,
+        created_at,
+        driver_earning,
+        tip_amount,
+        driver_percentage,
+        overtime_rate,
+        customer_id,
+        pickup_location,
+        dropoff_location,
+        users!bookings_customer_id_fkey (
+          id
+        ),
+        user_profiles!bookings_customer_id_fkey (
+          first_name,
+          last_name
+        )
+      `)
+      .eq('driver_id', driverId)
+      .order('created_at', { ascending: false });
 
     if (bookingsError) {
       console.warn('⚠️ 獲取司機訂單統計失敗:', bookingsError);
@@ -71,9 +91,17 @@ export async function GET(
     // 計算統計資料
     const totalTrips = bookings?.length || 0;
     const completedTrips = bookings?.filter((b: any) => b.status === 'completed').length || 0;
+
+    // 計算總收入（服務收入 = driver_earning + tip_amount × 0.97）
     const totalRevenue = bookings
       ?.filter((b: any) => b.status === 'completed')
-      .reduce((sum: number, b: any) => sum + (b.total_amount || 0), 0) || 0;
+      .reduce((sum: number, b: any) => {
+        const driverEarning = b.driver_earning || 0;
+        const tipAmount = b.tip_amount || 0;
+        const tipAfterFee = tipAmount * 0.97; // 小費扣除 3% 金流手續費
+        const serviceIncome = driverEarning + tipAfterFee;
+        return sum + serviceIncome;
+      }, 0) || 0;
 
     // 格式化司機詳情
     const formattedDriver = {
@@ -115,13 +143,36 @@ export async function GET(
       totalRevenue: totalRevenue,
       joinedDate: driverInfo?.created_at || user.created_at,
 
-      // 最近訂單
-      recentBookings: bookings?.slice(0, 5).map((b: any) => ({
-        id: b.id,
-        status: b.status,
-        amount: b.total_amount,
-        createdAt: b.created_at,
-      })) || [],
+      // 最近訂單（快照：保留當時的財務資料，避免歷史資料被後臺調整影響）
+      recentBookings: bookings?.slice(0, 10).map((b: any) => {
+        const driverEarning = b.driver_earning || 0;
+        const tipAmount = b.tip_amount || 0;
+        const tipAfterFee = tipAmount * 0.97; // 小費扣除 3% 金流手續費
+        const serviceIncome = driverEarning + tipAfterFee;
+
+        // 獲取客戶名稱
+        const customerProfile = b.user_profiles;
+        const customerName = customerProfile
+          ? `${customerProfile.first_name || ''} ${customerProfile.last_name || ''}`.trim() || '未設定'
+          : '未設定';
+
+        return {
+          id: b.id,
+          status: b.status,
+          amount: b.total_amount,
+          createdAt: b.created_at,
+          // 快照欄位
+          customerName,
+          pickupLocation: b.pickup_location || '',
+          dropoffLocation: b.dropoff_location || '',
+          driverPercentage: b.driver_percentage || 0,
+          overtimeRate: b.overtime_rate || 0,
+          tipAmount: tipAmount,
+          tipAfterFee: tipAfterFee,
+          driverEarning: driverEarning,
+          serviceIncome: serviceIncome,
+        };
+      }) || [],
     };
 
     console.log('✅ 成功獲取司機詳情:', { driverId, name: formattedDriver.name });

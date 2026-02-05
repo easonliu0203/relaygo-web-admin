@@ -98,34 +98,100 @@ export default function DriverDetailPage() {
     }
   };
 
+  // 訂單狀態配置（用於表格）
+  const bookingStatusConfig: Record<string, { color: string; text: string }> = {
+    pending: { color: 'orange', text: '待處理' },
+    confirmed: { color: 'blue', text: '已確認' },
+    in_progress: { color: 'processing', text: '進行中' },
+    completed: { color: 'success', text: '已完成' },
+    cancelled: { color: 'error', text: '已取消' },
+  };
+
   // 最近訂單表格列
   const bookingColumns = [
     {
-      title: '訂單 ID',
+      title: '訂單編號',
       dataIndex: 'id',
       key: 'id',
+      width: 100,
       render: (id: string) => id.substring(0, 8) + '...',
-    },
-    {
-      title: '狀態',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const config = statusConfig[status] || { color: 'default', text: status };
-        return <Tag color={config.color}>{config.text}</Tag>;
-      },
-    },
-    {
-      title: '金額',
-      dataIndex: 'amount',
-      key: 'amount',
-      render: (amount: number) => `NT$ ${amount?.toLocaleString() || 0}`,
     },
     {
       title: '日期',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 120,
       render: (date: string) => formatDateTime(date),
+    },
+    {
+      title: '客戶',
+      dataIndex: 'customerName',
+      key: 'customerName',
+      width: 100,
+      render: (name: string) => name || '未設定',
+    },
+    {
+      title: '路線',
+      key: 'route',
+      width: 200,
+      render: (_: any, record: any) => {
+        const pickup = record.pickupLocation || '未設定';
+        const dropoff = record.dropoffLocation || '未設定';
+        // 截取地址前 10 個字元
+        const shortPickup = pickup.length > 10 ? pickup.substring(0, 10) + '...' : pickup;
+        const shortDropoff = dropoff.length > 10 ? dropoff.substring(0, 10) + '...' : dropoff;
+        return `${shortPickup} → ${shortDropoff}`;
+      },
+    },
+    {
+      title: '訂單金額',
+      dataIndex: 'amount',
+      key: 'amount',
+      width: 100,
+      align: 'right' as const,
+      render: (amount: number) => `NT$ ${amount?.toLocaleString() || 0}`,
+    },
+    {
+      title: '司機分潤比例',
+      dataIndex: 'driverPercentage',
+      key: 'driverPercentage',
+      width: 100,
+      align: 'right' as const,
+      render: (percentage: number) => percentage ? `${percentage}%` : '-',
+    },
+    {
+      title: '超時費率',
+      dataIndex: 'overtimeRate',
+      key: 'overtimeRate',
+      width: 120,
+      align: 'right' as const,
+      render: (rate: number) => rate ? `NT$ ${rate?.toLocaleString()}/hr` : '-',
+    },
+    {
+      title: '小費淨收入',
+      dataIndex: 'tipAfterFee',
+      key: 'tipAfterFee',
+      width: 100,
+      align: 'right' as const,
+      render: (tip: number) => tip > 0 ? `NT$ ${Math.round(tip).toLocaleString()}` : '-',
+    },
+    {
+      title: '服務收入',
+      dataIndex: 'serviceIncome',
+      key: 'serviceIncome',
+      width: 100,
+      align: 'right' as const,
+      render: (income: number) => `NT$ ${Math.round(income || 0).toLocaleString()}`,
+    },
+    {
+      title: '狀態',
+      dataIndex: 'status',
+      key: 'status',
+      width: 80,
+      render: (status: string) => {
+        const config = bookingStatusConfig[status] || { color: 'default', text: status };
+        return <Tag color={config.color}>{config.text}</Tag>;
+      },
     },
   ];
 
@@ -306,13 +372,15 @@ export default function DriverDetailPage() {
       </Card>
 
       {/* 最近訂單 */}
-      <Card title="最近訂單" className="mb-6">
+      <Card title="最近訂單（快照資料）" className="mb-6">
         {driver.recentBookings && driver.recentBookings.length > 0 ? (
           <Table
             dataSource={driver.recentBookings}
             columns={bookingColumns}
             rowKey="id"
             pagination={false}
+            scroll={{ x: 1200 }}
+            size="small"
           />
         ) : (
           <Empty description="暫無訂單記錄" />
