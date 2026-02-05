@@ -18,7 +18,8 @@ import {
   Tabs,
   Badge,
   Divider,
-  Alert
+  Alert,
+  Select
 } from 'antd';
 import {
   PlusOutlined,
@@ -47,12 +48,27 @@ const SUPPORTED_LANGUAGES = [
   { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
 ];
 
+// 支援的國家列表
+const SUPPORTED_COUNTRIES = [
+  { code: 'TW', name: '台灣', name_en: 'Taiwan' },
+  { code: 'JP', name: '日本', name_en: 'Japan' },
+  { code: 'KR', name: '韓國', name_en: 'South Korea' },
+  { code: 'VN', name: '越南', name_en: 'Vietnam' },
+  { code: 'TH', name: '泰國', name_en: 'Thailand' },
+  { code: 'MY', name: '馬來西亞', name_en: 'Malaysia' },
+  { code: 'ID', name: '印尼', name_en: 'Indonesia' },
+];
+
 interface TourPackage {
   id: string;
   name: string;
   description: string;
   name_i18n?: Record<string, string>;
   description_i18n?: Record<string, string>;
+  country?: string;
+  region?: string;
+  country_i18n?: Record<string, string>;
+  region_i18n?: Record<string, string>;
   is_active: boolean;
   display_order: number;
   created_at: string;
@@ -122,23 +138,29 @@ export default function TourPackagesPage() {
 
     if (pkg) {
       setEditingPackage(pkg);
-      // 設置基本欄位
+      // 設置基本欄位（包含國家和地區）
       form.setFieldsValue({
         is_active: pkg.is_active,
         display_order: pkg.display_order,
+        country: pkg.country || 'TW',
+        region: pkg.region || 'taipei',
       });
 
       // 設置多語言欄位
       SUPPORTED_LANGUAGES.forEach(lang => {
         form.setFieldValue(['name_i18n', lang.code], pkg.name_i18n?.[lang.code] || '');
         form.setFieldValue(['description_i18n', lang.code], pkg.description_i18n?.[lang.code] || '');
+        form.setFieldValue(['country_i18n', lang.code], pkg.country_i18n?.[lang.code] || '');
+        form.setFieldValue(['region_i18n', lang.code], pkg.region_i18n?.[lang.code] || '');
       });
     } else {
       setEditingPackage(null);
       form.resetFields();
       form.setFieldsValue({
         is_active: true,
-        display_order: packages.length + 1
+        display_order: packages.length + 1,
+        country: 'TW',
+        region: 'taipei',
       });
     }
     setModalVisible(true);
@@ -158,6 +180,8 @@ export default function TourPackagesPage() {
       // 構建多語言資料
       const name_i18n: Record<string, string> = {};
       const description_i18n: Record<string, string> = {};
+      const country_i18n: Record<string, string> = {};
+      const region_i18n: Record<string, string> = {};
 
       SUPPORTED_LANGUAGES.forEach(lang => {
         if (values.name_i18n?.[lang.code]) {
@@ -165,6 +189,12 @@ export default function TourPackagesPage() {
         }
         if (values.description_i18n?.[lang.code]) {
           description_i18n[lang.code] = values.description_i18n[lang.code];
+        }
+        if (values.country_i18n?.[lang.code]) {
+          country_i18n[lang.code] = values.country_i18n[lang.code];
+        }
+        if (values.region_i18n?.[lang.code]) {
+          region_i18n[lang.code] = values.region_i18n[lang.code];
         }
       });
 
@@ -177,6 +207,10 @@ export default function TourPackagesPage() {
         description: defaultDescription,
         name_i18n,
         description_i18n,
+        country: values.country || 'TW',
+        region: values.region || 'taipei',
+        country_i18n,
+        region_i18n,
         is_active: values.is_active,
         display_order: values.display_order,
       };
@@ -450,6 +484,29 @@ export default function TourPackagesPage() {
                   unCheckedChildren="停用"
                 />
               </Form.Item>
+
+              <Form.Item
+                label="國家"
+                name="country"
+                rules={[{ required: true, message: '請選擇國家' }]}
+              >
+                <Select placeholder="請選擇國家">
+                  {SUPPORTED_COUNTRIES.map(c => (
+                    <Select.Option key={c.code} value={c.code}>
+                      {c.name} ({c.name_en})
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="地區代碼"
+                name="region"
+                rules={[{ required: true, message: '請輸入地區代碼' }]}
+                tooltip="例如：taipei, taichung, kaohsiung, jiufen, sunmoonlake"
+              >
+                <Input placeholder="例如：taipei, taichung" />
+              </Form.Item>
             </div>
           </Card>
 
@@ -502,6 +559,24 @@ export default function TourPackagesPage() {
                           placeholder={`請輸入${lang.name}方案的詳細描述，包含主要景點和特色`}
                         />
                       </Form.Item>
+
+                      <Divider orientation="left" plain>地區翻譯</Divider>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <Form.Item
+                          label={`國家名稱 (${lang.name})`}
+                          name={['country_i18n', lang.code]}
+                        >
+                          <Input placeholder={`請輸入${lang.name}國家名稱`} />
+                        </Form.Item>
+
+                        <Form.Item
+                          label={`地區名稱 (${lang.name})`}
+                          name={['region_i18n', lang.code]}
+                        >
+                          <Input placeholder={`請輸入${lang.name}地區名稱`} />
+                        </Form.Item>
+                      </div>
 
                       {/* 翻譯狀態提示 */}
                       <div className="text-sm text-gray-500">
