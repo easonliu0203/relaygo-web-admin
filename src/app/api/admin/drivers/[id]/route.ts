@@ -4,6 +4,7 @@ import { DatabaseService } from '@/lib/supabase';
 /**
  * GET /api/admin/drivers/[id]
  * 獲取司機詳情
+ * @updated 2026-02-05 - 移除不存在的欄位
  */
 export async function GET(
   request: NextRequest,
