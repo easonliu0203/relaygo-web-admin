@@ -69,9 +69,7 @@ export async function GET(
         driver_earning,
         tip_amount,
         overtime_fee,
-        customer_id,
-        pickup_location,
-        dropoff_location
+        customer_id
       `)
       .eq('driver_id', driverId)
       .order('created_at', { ascending: false });
@@ -173,8 +171,6 @@ export async function GET(
           createdAt: b.created_at,
           // 快照欄位
           customerName,
-          pickupLocation: b.pickup_location || '',
-          dropoffLocation: b.dropoff_location || '',
           overtimeFee: b.overtime_fee || 0,
           tipAmount: tipAmount,
           tipAfterFee: tipAfterFee,

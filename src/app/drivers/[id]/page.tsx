@@ -131,19 +131,6 @@ export default function DriverDetailPage() {
       render: (name: string) => name || '未設定',
     },
     {
-      title: '路線',
-      key: 'route',
-      width: 200,
-      render: (_: any, record: any) => {
-        const pickup = record.pickupLocation || '未設定';
-        const dropoff = record.dropoffLocation || '未設定';
-        // 截取地址前 10 個字元
-        const shortPickup = pickup.length > 10 ? pickup.substring(0, 10) + '...' : pickup;
-        const shortDropoff = dropoff.length > 10 ? dropoff.substring(0, 10) + '...' : dropoff;
-        return `${shortPickup} → ${shortDropoff}`;
-      },
-    },
-    {
       title: '訂單金額',
       dataIndex: 'amount',
       key: 'amount',
