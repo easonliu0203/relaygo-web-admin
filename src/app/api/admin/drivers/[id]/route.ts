@@ -72,20 +72,31 @@ export async function GET(
         overtime_rate,
         customer_id,
         pickup_location,
-        dropoff_location,
-        users!bookings_customer_id_fkey (
-          id
-        ),
-        user_profiles!bookings_customer_id_fkey (
-          first_name,
-          last_name
-        )
+        dropoff_location
       `)
       .eq('driver_id', driverId)
       .order('created_at', { ascending: false });
 
     if (bookingsError) {
       console.warn('⚠️ 獲取司機訂單統計失敗:', bookingsError);
+    }
+
+    // 獲取所有客戶 ID 並查詢客戶資料
+    const customerIds = [...new Set(bookings?.map((b: any) => b.customer_id).filter(Boolean) || [])];
+    let customerProfiles: Record<string, { first_name: string; last_name: string }> = {};
+
+    if (customerIds.length > 0) {
+      const { data: profiles } = await db.supabase
+        .from('user_profiles')
+        .select('user_id, first_name, last_name')
+        .in('user_id', customerIds);
+
+      if (profiles) {
+        customerProfiles = profiles.reduce((acc: any, p: any) => {
+          acc[p.user_id] = { first_name: p.first_name, last_name: p.last_name };
+          return acc;
+        }, {});
+      }
     }
 
     // 計算統計資料
@@ -150,8 +161,8 @@ export async function GET(
         const tipAfterFee = tipAmount * 0.97; // 小費扣除 3% 金流手續費
         const serviceIncome = driverEarning + tipAfterFee;
 
-        // 獲取客戶名稱
-        const customerProfile = b.user_profiles;
+        // 從預先查詢的客戶資料中獲取客戶名稱
+        const customerProfile = customerProfiles[b.customer_id];
         const customerName = customerProfile
           ? `${customerProfile.first_name || ''} ${customerProfile.last_name || ''}`.trim() || '未設定'
           : '未設定';
