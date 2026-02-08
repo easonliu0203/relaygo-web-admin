@@ -306,7 +306,7 @@ export default function TourPackagesPage() {
   const translateField = async (text: string, targetLang: string): Promise<string> => {
     try {
       // 獲取 Firebase Auth Token
-      const user = await FirebaseService.getCurrentUser();
+      const user = await FirebaseService.getCurrentUser() as any;
       let authToken = '';
 
       if (user && typeof user.getIdToken === 'function') {
