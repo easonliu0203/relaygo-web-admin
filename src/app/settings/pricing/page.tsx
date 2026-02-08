@@ -19,6 +19,8 @@ import {
   Tabs,
   Badge,
   Alert,
+  Spin,
+  Tooltip,
 } from 'antd';
 import {
   DollarOutlined,
@@ -30,12 +32,18 @@ import {
   GlobalOutlined,
   CarOutlined,
   TeamOutlined,
+  TranslationOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import { createClient } from '@supabase/supabase-js';
+import FirebaseService from '@/lib/firebase';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
+
+// 翻譯 API 端點
+const TRANSLATE_API_URL = 'https://asia-east1-ride-platform-f1676.cloudfunctions.net/translate';
 
 // Supabase 客戶端
 const supabase = createClient(
@@ -92,7 +100,118 @@ export default function PricingSettingsPage() {
   const [editingRecord, setEditingRecord] = useState<VehiclePricing | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('zh-TW');
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
   const [form] = Form.useForm();
+
+  // 翻譯單個欄位
+  const translateField = async (text: string, targetLang: string): Promise<string> => {
+    try {
+      // 獲取 Firebase Auth Token
+      const user = await FirebaseService.getCurrentUser() as any;
+      let authToken = '';
+
+      if (user && typeof user.getIdToken === 'function') {
+        authToken = await user.getIdToken();
+      }
+
+      const response = await fetch(TRANSLATE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+        },
+        body: JSON.stringify({
+          text,
+          targetLang,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '翻譯失敗');
+      }
+
+      const result = await response.json();
+      return result.translatedText || '';
+    } catch (error: any) {
+      console.error('翻譯錯誤:', error);
+      throw error;
+    }
+  };
+
+  // 翻譯所有欄位
+  const translateAllFields = async (targetLang: string) => {
+    const langKey = `translate_${targetLang}`;
+
+    try {
+      // 獲取繁體中文內容
+      const zhTWVehicleDescription = form.getFieldValue(['vehicle_description_i18n', 'zh-TW']);
+      const zhTWCapacityInfo = form.getFieldValue(['capacity_info_i18n', 'zh-TW']);
+
+      // 檢查是否有繁體中文內容
+      if (!zhTWVehicleDescription && !zhTWCapacityInfo) {
+        message.warning('請先填寫繁體中文的車型描述或內容描述');
+        return;
+      }
+
+      // 檢查目標語言是否已有內容
+      const existingVehicleDescription = form.getFieldValue(['vehicle_description_i18n', targetLang]);
+      const existingCapacityInfo = form.getFieldValue(['capacity_info_i18n', targetLang]);
+
+      if (existingVehicleDescription || existingCapacityInfo) {
+        const confirmed = await new Promise<boolean>((resolve) => {
+          Modal.confirm({
+            title: '確認覆蓋',
+            content: `目標語言已有內容，是否要覆蓋？`,
+            okText: '確定',
+            cancelText: '取消',
+            onOk: () => resolve(true),
+            onCancel: () => resolve(false),
+          });
+        });
+
+        if (!confirmed) return;
+      }
+
+      // 開始翻譯
+      setTranslating(prev => ({ ...prev, [langKey]: true }));
+      message.loading({ content: '正在翻譯...', key: langKey, duration: 0 });
+
+      const translations: Record<string, string> = {};
+
+      // 翻譯車型描述
+      if (zhTWVehicleDescription) {
+        try {
+          translations.vehicleDescription = await translateField(zhTWVehicleDescription, targetLang);
+        } catch (error) {
+          console.error('翻譯車型描述失敗:', error);
+        }
+      }
+
+      // 翻譯內容描述
+      if (zhTWCapacityInfo) {
+        try {
+          translations.capacityInfo = await translateField(zhTWCapacityInfo, targetLang);
+        } catch (error) {
+          console.error('翻譯內容描述失敗:', error);
+        }
+      }
+
+      // 更新表單欄位
+      if (translations.vehicleDescription) {
+        form.setFieldValue(['vehicle_description_i18n', targetLang], translations.vehicleDescription);
+      }
+      if (translations.capacityInfo) {
+        form.setFieldValue(['capacity_info_i18n', targetLang], translations.capacityInfo);
+      }
+
+      message.success({ content: '翻譯完成！', key: langKey });
+    } catch (error: any) {
+      message.error({ content: `翻譯失敗: ${error.message}`, key: langKey });
+    } finally {
+      setTranslating(prev => ({ ...prev, [langKey]: false }));
+    }
+  };
 
   // 計算翻譯完成度
   const getTranslationCompleteness = (pricing: VehiclePricing) => {
@@ -566,6 +685,23 @@ export default function PricingSettingsPage() {
                   ),
                   children: (
                     <div className="py-4">
+                      {/* 翻譯按鈕 - 只在非繁體中文標籤頁顯示 */}
+                      {lang.code !== 'zh-TW' && (
+                        <div className="mb-4">
+                          <Tooltip title="自動將繁體中文內容翻譯成此語言">
+                            <Button
+                              type="dashed"
+                              icon={translating[`translate_${lang.code}`] ? <LoadingOutlined /> : <TranslationOutlined />}
+                              onClick={() => translateAllFields(lang.code)}
+                              loading={translating[`translate_${lang.code}`]}
+                              block
+                            >
+                              {translating[`translate_${lang.code}`] ? '翻譯中...' : `🌐 自動翻譯全部欄位`}
+                            </Button>
+                          </Tooltip>
+                        </div>
+                      )}
+
                       <Form.Item
                         label={`車型描述 (${lang.name})`}
                         name={['vehicle_description_i18n', lang.code]}
