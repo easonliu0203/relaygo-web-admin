@@ -19,7 +19,9 @@ import {
   Badge,
   Divider,
   Alert,
-  Select
+  Select,
+  Spin,
+  Tooltip
 } from 'antd';
 import {
   PlusOutlined,
@@ -30,8 +32,11 @@ import {
   EnvironmentOutlined,
   GlobalOutlined,
   CheckCircleOutlined,
-  WarningOutlined
+  WarningOutlined,
+  TranslationOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
+import { FirebaseService } from '@/lib/firebase';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -83,9 +88,11 @@ export default function TourPackagesPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPackage, setEditingPackage] = useState<TourPackage | null>(null);
   const [activeTab, setActiveTab] = useState('zh-TW');
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
 
   // API Base URL
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.relaygo.pro';
+  const TRANSLATE_API_URL = 'https://asia-east1-ride-platform-f1676.cloudfunctions.net/translate';
 
   // 計算翻譯完成度
   const getTranslationCompleteness = (pkg: TourPackage) => {
@@ -292,6 +299,154 @@ export default function TourPackagesPage() {
     } catch (error) {
       console.error('更新旅遊方案錯誤:', error);
       message.error('更新失敗');
+    }
+  };
+
+  // 翻譯單個欄位
+  const translateField = async (text: string, targetLang: string): Promise<string> => {
+    try {
+      // 獲取 Firebase Auth Token
+      const user = await FirebaseService.getCurrentUser();
+      let authToken = '';
+
+      if (user && typeof user.getIdToken === 'function') {
+        authToken = await user.getIdToken();
+      }
+
+      const response = await fetch(TRANSLATE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+        },
+        body: JSON.stringify({
+          text,
+          targetLang,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '翻譯失敗');
+      }
+
+      const result = await response.json();
+      return result.translatedText || '';
+    } catch (error: any) {
+      console.error('翻譯錯誤:', error);
+      throw error;
+    }
+  };
+
+  // 翻譯所有欄位
+  const translateAllFields = async (targetLang: string) => {
+    const langKey = `translate_${targetLang}`;
+
+    // 檢查是否正在翻譯
+    if (translating[langKey]) {
+      return;
+    }
+
+    try {
+      // 獲取繁體中文的內容
+      const zhTWName = form.getFieldValue(['name_i18n', 'zh-TW']);
+      const zhTWDescription = form.getFieldValue(['description_i18n', 'zh-TW']);
+      const zhTWCountry = form.getFieldValue(['country_i18n', 'zh-TW']);
+      const zhTWRegion = form.getFieldValue(['region_i18n', 'zh-TW']);
+
+      // 檢查是否有繁體中文內容
+      if (!zhTWName && !zhTWDescription && !zhTWCountry && !zhTWRegion) {
+        message.warning('請先填寫繁體中文內容');
+        return;
+      }
+
+      // 檢查目標語言是否已有內容
+      const targetName = form.getFieldValue(['name_i18n', targetLang]);
+      const targetDescription = form.getFieldValue(['description_i18n', targetLang]);
+      const targetCountry = form.getFieldValue(['country_i18n', targetLang]);
+      const targetRegion = form.getFieldValue(['region_i18n', targetLang]);
+
+      const hasExistingContent = targetName || targetDescription || targetCountry || targetRegion;
+
+      if (hasExistingContent) {
+        const confirmed = await new Promise<boolean>((resolve) => {
+          Modal.confirm({
+            title: '確認覆蓋',
+            content: '此語言已有部分內容，是否要覆蓋？',
+            okText: '確定',
+            cancelText: '取消',
+            onOk: () => resolve(true),
+            onCancel: () => resolve(false),
+          });
+        });
+
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      // 開始翻譯
+      setTranslating(prev => ({ ...prev, [langKey]: true }));
+      message.loading({ content: '正在翻譯...', key: langKey, duration: 0 });
+
+      const translations: Record<string, string> = {};
+
+      // 翻譯方案名稱
+      if (zhTWName) {
+        try {
+          translations.name = await translateField(zhTWName, targetLang);
+        } catch (error) {
+          console.error('翻譯方案名稱失敗:', error);
+        }
+      }
+
+      // 翻譯方案描述
+      if (zhTWDescription) {
+        try {
+          translations.description = await translateField(zhTWDescription, targetLang);
+        } catch (error) {
+          console.error('翻譯方案描述失敗:', error);
+        }
+      }
+
+      // 翻譯國家名稱
+      if (zhTWCountry) {
+        try {
+          translations.country = await translateField(zhTWCountry, targetLang);
+        } catch (error) {
+          console.error('翻譯國家名稱失敗:', error);
+        }
+      }
+
+      // 翻譯地區名稱
+      if (zhTWRegion) {
+        try {
+          translations.region = await translateField(zhTWRegion, targetLang);
+        } catch (error) {
+          console.error('翻譯地區名稱失敗:', error);
+        }
+      }
+
+      // 更新表單
+      if (translations.name) {
+        form.setFieldValue(['name_i18n', targetLang], translations.name);
+      }
+      if (translations.description) {
+        form.setFieldValue(['description_i18n', targetLang], translations.description);
+      }
+      if (translations.country) {
+        form.setFieldValue(['country_i18n', targetLang], translations.country);
+      }
+      if (translations.region) {
+        form.setFieldValue(['region_i18n', targetLang], translations.region);
+      }
+
+      message.success({ content: '翻譯完成！', key: langKey });
+    } catch (error: any) {
+      console.error('翻譯失敗:', error);
+      message.error({ content: error.message || '翻譯失敗', key: langKey });
+    } finally {
+      setTranslating(prev => ({ ...prev, [langKey]: false }));
     }
   };
 
@@ -538,6 +693,23 @@ export default function TourPackagesPage() {
                   ),
                   children: (
                     <div className="py-4">
+                      {/* 翻譯按鈕 - 只在非繁體中文標籤頁顯示 */}
+                      {lang.code !== 'zh-TW' && (
+                        <div className="mb-4">
+                          <Tooltip title="自動將繁體中文內容翻譯成此語言">
+                            <Button
+                              type="dashed"
+                              icon={translating[`translate_${lang.code}`] ? <LoadingOutlined /> : <TranslationOutlined />}
+                              onClick={() => translateAllFields(lang.code)}
+                              loading={translating[`translate_${lang.code}`]}
+                              block
+                            >
+                              {translating[`translate_${lang.code}`] ? '翻譯中...' : `🌐 自動翻譯全部欄位`}
+                            </Button>
+                          </Tooltip>
+                        </div>
+                      )}
+
                       <Form.Item
                         label={`方案名稱 (${lang.name})`}
                         name={['name_i18n', lang.code]}
