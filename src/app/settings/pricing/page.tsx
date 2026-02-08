@@ -36,7 +36,7 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import { createClient } from '@supabase/supabase-js';
-import FirebaseService from '@/lib/firebase';
+import { FirebaseService } from '@/lib/firebase';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
