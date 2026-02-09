@@ -33,37 +33,79 @@ export const useAuthStore = create<AuthStore>()(
       isLoading: false,
       error: null,
 
-      // 登入
+      // 登入（使用 Firebase Authentication）
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
 
-          const response = await ApiService.login(email, password);
-          
+          console.log('🔄 開始電子郵件/密碼登入流程...');
+
+          // 動態載入 Firebase Auth
+          const { FirebaseService } = await import('@/lib/firebase');
+
+          console.log('🔄 使用 Firebase Authentication 登入...');
+          // 使用 Firebase Authentication 登入
+          const userCredential = await FirebaseService.signInWithEmailAndPassword(email, password);
+          const user = userCredential.user;
+
+          console.log('✅ Firebase 登入成功:', {
+            uid: user.uid,
+            email: user.email,
+          });
+
+          // 獲取 Firebase ID Token
+          console.log('🔄 獲取 Firebase ID Token...');
+          const idToken = await user.getIdToken();
+
+          // 呼叫後端 API 驗證並創建/更新管理員帳號
+          console.log('🔄 呼叫後端 API 驗證...');
+          const response = await ApiService.loginWithGoogle(idToken);
+
           if (response.success) {
-            const { user, token } = response.data;
-            
+            const { user: adminUser, token } = response.data;
+
+            console.log('✅ 後端驗證成功，儲存 token...');
             // 儲存 token
             Cookies.set('admin_token', token, { expires: 7 }); // 7天過期
             localStorage.setItem('admin_token', token);
-            
+
             set({
-              user,
+              user: adminUser,
               token,
               isAuthenticated: true,
               isLoading: false,
               error: null,
             });
+
+            console.log('✅ 電子郵件/密碼登入流程完成！');
           } else {
             throw new Error(response.message || '登入失敗');
           }
         } catch (error: any) {
+          console.error('❌ 電子郵件/密碼登入失敗:', error);
+
+          // 處理 Firebase Authentication 錯誤
+          let errorMessage = '登入失敗';
+          if (error.code === 'auth/user-not-found') {
+            errorMessage = '帳號不存在';
+          } else if (error.code === 'auth/wrong-password') {
+            errorMessage = '密碼錯誤';
+          } else if (error.code === 'auth/invalid-email') {
+            errorMessage = '電子郵件格式無效';
+          } else if (error.code === 'auth/user-disabled') {
+            errorMessage = '帳號已被停用';
+          } else if (error.code === 'auth/too-many-requests') {
+            errorMessage = '登入嘗試次數過多，請稍後再試';
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
           set({
             user: null,
             token: null,
             isAuthenticated: false,
             isLoading: false,
-            error: error.message || '登入失敗',
+            error: errorMessage,
           });
           throw error;
         }
