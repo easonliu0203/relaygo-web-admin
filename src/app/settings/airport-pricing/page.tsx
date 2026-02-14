@@ -1,0 +1,523 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  Card,
+  Table,
+  Button,
+  Typography,
+  Space,
+  message,
+  Switch,
+  InputNumber,
+  Input,
+  Select,
+  Popconfirm,
+  Tag,
+  Modal,
+  Form,
+  Row,
+  Col,
+  Statistic,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  SaveOutlined,
+  StopOutlined,
+  CheckCircleOutlined,
+  AimOutlined,
+} from '@ant-design/icons';
+import { createClient } from '@supabase/supabase-js';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
+
+const VEHICLE_TYPE_OPTIONS = [
+  { value: 'XS', label: 'XS - 特小型' },
+  { value: 'S',  label: 'S  - 小型（五人座）' },
+  { value: 'M',  label: 'M  - 中型（七人座）' },
+  { value: 'L',  label: 'L  - 大型' },
+  { value: 'XL', label: 'XL - 特大型' },
+];
+
+const AIRPORTS = [
+  { key: 'tsa_price', label: '台北松山 (TSA)', color: '#1890ff' },
+  { key: 'tpe_price', label: '桃園國際 (TPE)', color: '#52c41a' },
+  { key: 'rmq_price', label: '台中清泉崗 (RMQ)', color: '#fa8c16' },
+  { key: 'khh_price', label: '高雄小港 (KHH)', color: '#eb2f96' },
+];
+
+interface AirportPricing {
+  id: string;
+  country: string;
+  price_list_name: string;
+  vehicle_type: string;
+  region: string;
+  tsa_price: number | null;
+  tpe_price: number | null;
+  rmq_price: number | null;
+  khh_price: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export default function AirportPricingPage() {
+  const [loading, setLoading] = useState(false);
+  const [pricingList, setPricingList] = useState<AirportPricing[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<AirportPricing | null>(null);
+  const [filterVehicleType, setFilterVehicleType] = useState<string | null>(null);
+  const [filterPriceList, setFilterPriceList] = useState<string | null>(null);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [form] = Form.useForm();
+
+  // ── 載入資料 ───────────────────────────────────────────────
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      let q = supabase.from('airport_transfer_pricing').select('*').order('region');
+      if (filterVehicleType) q = q.eq('vehicle_type', filterVehicleType);
+      if (filterPriceList)   q = q.eq('price_list_name', filterPriceList);
+
+      const { data, error } = await q;
+      if (error) throw error;
+      setPricingList(data || []);
+    } catch (e: any) {
+      message.error(`載入失敗: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadData(); }, [filterVehicleType, filterPriceList]);
+
+  // ── 統計數字 ───────────────────────────────────────────────
+  const totalCount  = pricingList.length;
+  const activeCount = pricingList.filter(r => r.is_active).length;
+
+  // ── 取得所有不重複的價目表名稱 ────────────────────────────
+  const priceListNames = Array.from(new Set(pricingList.map(r => r.price_list_name)));
+
+  // ── 切換啟用狀態 ────────────────────────────────────────────
+  const toggleActive = async (record: AirportPricing) => {
+    try {
+      const { error } = await supabase
+        .from('airport_transfer_pricing')
+        .update({ is_active: !record.is_active })
+        .eq('id', record.id);
+      if (error) throw error;
+      message.success(record.is_active ? '已停用' : '已啟用');
+      loadData();
+    } catch (e: any) {
+      message.error(`操作失敗: ${e.message}`);
+    }
+  };
+
+  // ── 刪除單筆 ────────────────────────────────────────────────
+  const deleteRecord = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('airport_transfer_pricing')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      message.success('已刪除');
+      loadData();
+    } catch (e: any) {
+      message.error(`刪除失敗: ${e.message}`);
+    }
+  };
+
+  // ── 批次操作 ────────────────────────────────────────────────
+  const batchSetActive = async (active: boolean) => {
+    if (!selectedRowKeys.length) return;
+    setBatchLoading(true);
+    try {
+      const { error } = await supabase
+        .from('airport_transfer_pricing')
+        .update({ is_active: active })
+        .in('id', selectedRowKeys as string[]);
+      if (error) throw error;
+      message.success(`已批次${active ? '啟用' : '停用'} ${selectedRowKeys.length} 筆`);
+      setSelectedRowKeys([]);
+      loadData();
+    } catch (e: any) {
+      message.error(`批次操作失敗: ${e.message}`);
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const batchDelete = async () => {
+    if (!selectedRowKeys.length) return;
+    setBatchLoading(true);
+    try {
+      const { error } = await supabase
+        .from('airport_transfer_pricing')
+        .delete()
+        .in('id', selectedRowKeys as string[]);
+      if (error) throw error;
+      message.success(`已刪除 ${selectedRowKeys.length} 筆`);
+      setSelectedRowKeys([]);
+      loadData();
+    } catch (e: any) {
+      message.error(`批次刪除失敗: ${e.message}`);
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  // ── 開啟新增/編輯 Modal ─────────────────────────────────────
+  const showModal = (record?: AirportPricing) => {
+    if (record) {
+      setEditingRecord(record);
+      form.setFieldsValue({
+        country:        record.country,
+        price_list_name: record.price_list_name,
+        vehicle_type:   record.vehicle_type,
+        region:         record.region,
+        tsa_price:      record.tsa_price,
+        tpe_price:      record.tpe_price,
+        rmq_price:      record.rmq_price,
+        khh_price:      record.khh_price,
+        is_active:      record.is_active,
+      });
+    } else {
+      setEditingRecord(null);
+      form.resetFields();
+      form.setFieldsValue({ country: 'TW', is_active: true });
+    }
+    setIsModalVisible(true);
+  };
+
+  // ── 儲存 ────────────────────────────────────────────────────
+  const handleSave = async (values: any) => {
+    try {
+      const payload = {
+        country:         values.country || 'TW',
+        price_list_name: values.price_list_name,
+        vehicle_type:    values.vehicle_type,
+        region:          values.region,
+        tsa_price:       values.tsa_price ?? null,
+        tpe_price:       values.tpe_price ?? null,
+        rmq_price:       values.rmq_price ?? null,
+        khh_price:       values.khh_price ?? null,
+        is_active:       values.is_active ?? true,
+      };
+
+      if (editingRecord) {
+        const { error } = await supabase
+          .from('airport_transfer_pricing')
+          .update(payload)
+          .eq('id', editingRecord.id);
+        if (error) throw error;
+        message.success('更新成功');
+      } else {
+        const { error } = await supabase
+          .from('airport_transfer_pricing')
+          .insert([payload]);
+        if (error) throw error;
+        message.success('新增成功');
+      }
+
+      setIsModalVisible(false);
+      form.resetFields();
+      loadData();
+    } catch (e: any) {
+      message.error(`儲存失敗: ${e.message}`);
+    }
+  };
+
+  // ── 表格欄位 ────────────────────────────────────────────────
+  const columns = [
+    {
+      title: '地區',
+      dataIndex: 'region',
+      key: 'region',
+      width: 100,
+      fixed: 'left' as const,
+      render: (v: string) => <Text strong>{v}</Text>,
+    },
+    {
+      title: '車型',
+      dataIndex: 'vehicle_type',
+      key: 'vehicle_type',
+      width: 80,
+      render: (v: string) => <Tag color="purple">{v}</Tag>,
+    },
+    ...AIRPORTS.map(airport => ({
+      title: airport.label,
+      dataIndex: airport.key,
+      key: airport.key,
+      width: 150,
+      render: (price: number | null) =>
+        price != null ? (
+          <Text strong style={{ color: airport.color }}>
+            NT$ {price.toLocaleString()}
+          </Text>
+        ) : (
+          <Text type="secondary">—</Text>
+        ),
+    })),
+    {
+      title: '價目表',
+      dataIndex: 'price_list_name',
+      key: 'price_list_name',
+      width: 180,
+      ellipsis: true,
+      render: (v: string) => <Text type="secondary" style={{ fontSize: 12 }}>{v}</Text>,
+    },
+    {
+      title: '狀態',
+      dataIndex: 'is_active',
+      key: 'is_active',
+      width: 100,
+      render: (v: boolean, record: AirportPricing) => (
+        <Switch
+          checked={v}
+          checkedChildren="啟用"
+          unCheckedChildren="停用"
+          onChange={() => toggleActive(record)}
+          size="small"
+        />
+      ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 130,
+      fixed: 'right' as const,
+      render: (_: any, record: AirportPricing) => (
+        <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => showModal(record)}
+          >
+            編輯
+          </Button>
+          <Popconfirm
+            title="確定刪除這筆資料？"
+            description="此操作無法復原。"
+            onConfirm={() => deleteRecord(record.id)}
+            okText="刪除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+              刪除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-6">
+      {/* 頁首 */}
+      <div className="mb-6">
+        <Title level={2}>
+          <AimOutlined className="mr-2" />
+          機場接送價格管理
+        </Title>
+        <Text type="secondary">管理各地區至各機場的接送定價，支援多車型與多價目表</Text>
+      </div>
+
+      {/* 統計卡片 */}
+      <Row gutter={16} className="mb-6">
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="總筆數" value={totalCount} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="啟用中" value={activeCount} valueStyle={{ color: '#52c41a' }} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="已停用" value={totalCount - activeCount} valueStyle={{ color: '#ff4d4f' }} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="已選取" value={selectedRowKeys.length} valueStyle={{ color: '#1890ff' }} />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 主要列表 */}
+      <Card
+        title="定價列表"
+        extra={
+          <Space wrap>
+            {/* 篩選 */}
+            <Select
+              allowClear
+              placeholder="篩選車型"
+              style={{ width: 160 }}
+              onChange={v => setFilterVehicleType(v || null)}
+            >
+              {VEHICLE_TYPE_OPTIONS.map(o => (
+                <Option key={o.value} value={o.value}>{o.label}</Option>
+              ))}
+            </Select>
+            <Select
+              allowClear
+              placeholder="篩選價目表"
+              style={{ width: 200 }}
+              onChange={v => setFilterPriceList(v || null)}
+            >
+              {priceListNames.map(name => (
+                <Option key={name} value={name}>{name}</Option>
+              ))}
+            </Select>
+
+            <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
+              重新載入
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
+              新增
+            </Button>
+          </Space>
+        }
+      >
+        {/* 批次操作列（有選取時顯示） */}
+        {selectedRowKeys.length > 0 && (
+          <div
+            className="mb-4 p-3 rounded"
+            style={{ background: '#e6f4ff', border: '1px solid #91caff' }}
+          >
+            <Space>
+              <Text strong>已選取 {selectedRowKeys.length} 筆</Text>
+              <Button
+                size="small"
+                icon={<CheckCircleOutlined />}
+                onClick={() => batchSetActive(true)}
+                loading={batchLoading}
+              >
+                批次啟用
+              </Button>
+              <Button
+                size="small"
+                icon={<StopOutlined />}
+                onClick={() => batchSetActive(false)}
+                loading={batchLoading}
+              >
+                批次停用
+              </Button>
+              <Popconfirm
+                title={`確定刪除這 ${selectedRowKeys.length} 筆資料？`}
+                description="此操作無法復原。"
+                onConfirm={batchDelete}
+                okText="刪除"
+                cancelText="取消"
+                okButtonProps={{ danger: true }}
+              >
+                <Button size="small" danger icon={<DeleteOutlined />} loading={batchLoading}>
+                  批次刪除
+                </Button>
+              </Popconfirm>
+              <Button size="small" onClick={() => setSelectedRowKeys([])}>
+                取消選取
+              </Button>
+            </Space>
+          </div>
+        )}
+
+        <Table
+          dataSource={pricingList}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 50, showSizeChanger: true, showTotal: t => `共 ${t} 筆` }}
+          scroll={{ x: 1000 }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
+          size="small"
+        />
+      </Card>
+
+      {/* 新增/編輯 Modal */}
+      <Modal
+        title={editingRecord ? '編輯定價' : '新增定價'}
+        open={isModalVisible}
+        onCancel={() => { setIsModalVisible(false); form.resetFields(); }}
+        footer={null}
+        width={560}
+      >
+        <Form form={form} layout="vertical" onFinish={handleSave}>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item label="車型" name="vehicle_type" rules={[{ required: true, message: '請選擇車型' }]}>
+                <Select placeholder="請選擇車型">
+                  {VEHICLE_TYPE_OPTIONS.map(o => (
+                    <Option key={o.value} value={o.value}>{o.label}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="地區" name="region" rules={[{ required: true, message: '請輸入地區' }]}>
+                <Input placeholder="例：雙北" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item label="價目表名稱" name="price_list_name" rules={[{ required: true, message: '請輸入價目表名稱' }]}>
+            <Input placeholder="例：機場接送五人座轎車價目表" />
+          </Form.Item>
+
+          <Form.Item label="國家碼" name="country">
+            <Input placeholder="TW" style={{ width: 100 }} />
+          </Form.Item>
+
+          <Row gutter={12}>
+            {AIRPORTS.map(a => (
+              <Col span={12} key={a.key}>
+                <Form.Item label={a.label} name={a.key}>
+                  <InputNumber
+                    min={0}
+                    style={{ width: '100%' }}
+                    addonBefore="NT$"
+                    placeholder="輸入價格"
+                  />
+                </Form.Item>
+              </Col>
+            ))}
+          </Row>
+
+          <Form.Item label="狀態" name="is_active" valuePropName="checked">
+            <Switch checkedChildren="啟用" unCheckedChildren="停用" />
+          </Form.Item>
+
+          <Form.Item className="mb-0 text-right">
+            <Space>
+              <Button onClick={() => { setIsModalVisible(false); form.resetFields(); }}>
+                取消
+              </Button>
+              <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>
+                儲存
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+}
