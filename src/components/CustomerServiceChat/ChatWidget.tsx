@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card } from 'antd';
 import { ChatList, CustomerServiceChat } from './ChatList';
 import { ChatRoom, ChatMessage } from './ChatRoom';
 import { CustomerServiceChatService } from '@/services/customerServiceChatService';
+import { translateText } from '@/services/translationService';
 
 interface ChatWidgetProps {
   isOpen: boolean;
@@ -23,6 +24,9 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, adminId, adminNa
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  // 翻譯快取：messageId → 中文翻譯（客人訊息 → 管理員用）
+  const translationCacheRef = useRef<Map<string, string>>(new Map());
+  const [translationVersion, setTranslationVersion] = useState(0);
 
   // 訂閱客服對話列表
   useEffect(() => {
@@ -70,17 +74,38 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, adminId, adminNa
     };
   }, [selectedChat]);
 
-  // 發送訊息
+  // 自動翻譯客人/司機訊息為中文（供管理員閱讀）
+  useEffect(() => {
+    const cache = translationCacheRef.current;
+    const untranslated = messages.filter(
+      (msg) => msg.senderType !== 'admin' && !cache.has(msg.id)
+    );
+    if (untranslated.length === 0) return;
+
+    untranslated.forEach((msg) => {
+      translateText(msg.message, 'zh-TW').then((translated) => {
+        if (translated && translated !== msg.message) {
+          cache.set(msg.id, translated);
+          setTranslationVersion((v) => v + 1);
+        }
+      });
+    });
+  }, [messages]);
+
+  // 發送訊息（管理員中文 → 自動翻成英文給客人）
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
 
     setSending(true);
     try {
+      // 翻譯成英文，存入 translatedMessage 給客人顯示
+      const translatedMessage = await translateText(message, 'en');
       await CustomerServiceChatService.sendMessage(
         selectedChat.id,
         message,
         adminId,
-        adminName
+        adminName,
+        translatedMessage ?? undefined
       );
     } catch (error) {
       console.error('發送訊息失敗:', error);
@@ -120,7 +145,11 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, adminId, adminNa
         {selectedChat ? (
           <ChatRoom
             chat={selectedChat}
-            messages={messages}
+            messages={messages.map((msg) => ({
+              ...msg,
+              translatedMessage:
+                msg.translatedMessage ?? translationCacheRef.current.get(msg.id),
+            }))}
             loading={messagesLoading}
             sending={sending}
             onSendMessage={handleSendMessage}

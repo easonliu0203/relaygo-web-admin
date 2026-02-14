@@ -14,6 +14,7 @@ export interface ChatMessage {
   senderType: 'customer' | 'driver' | 'admin';
   senderName: string;
   message: string;
+  translatedMessage?: string;
   timestamp: Date;
   isRead: boolean;
 }
@@ -118,6 +119,13 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                       <div className="text-xs text-gray-400 mb-1">{msg.senderName}</div>
                     )}
                     <div className="whitespace-pre-wrap break-words">{msg.message}</div>
+                    {!isAdmin && msg.translatedMessage && (
+                      <div className="mt-1 pt-1 border-t border-gray-200">
+                        <div className="text-xs text-gray-400 italic whitespace-pre-wrap break-words">
+                          {msg.translatedMessage}
+                        </div>
+                      </div>
+                    )}
                     <div
                       className={`text-xs mt-1 ${
                         isAdmin ? 'text-blue-100' : 'text-gray-400'

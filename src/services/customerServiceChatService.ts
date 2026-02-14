@@ -124,6 +124,7 @@ export class CustomerServiceChatService {
                 senderType: data.senderType,
                 senderName: data.senderName,
                 message: data.message,
+                translatedMessage: data.translatedMessage ?? undefined,
                 timestamp: data.timestamp?.toDate() || new Date(),
                 isRead: data.isRead || false,
               };
@@ -160,7 +161,8 @@ export class CustomerServiceChatService {
     chatId: string,
     message: string,
     adminId: string,
-    adminName: string
+    adminName: string,
+    translatedMessage?: string
   ): Promise<void> {
     try {
       await initializeFirebase();
@@ -176,6 +178,7 @@ export class CustomerServiceChatService {
         senderType: 'admin',
         senderName: adminName,
         message,
+        ...(translatedMessage ? { translatedMessage } : {}),
         timestamp: now,
         isRead: false,
       });
