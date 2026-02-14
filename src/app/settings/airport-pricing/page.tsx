@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -19,6 +19,7 @@ import {
   Row,
   Col,
   Statistic,
+  Divider,
 } from 'antd';
 import {
   PlusOutlined,
@@ -29,6 +30,9 @@ import {
   StopOutlined,
   CheckCircleOutlined,
   AimOutlined,
+  SortAscendingOutlined,
+  UndoOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import { createClient } from '@supabase/supabase-js';
 
@@ -40,19 +44,64 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
-const VEHICLE_TYPE_OPTIONS = [
-  { value: 'XS', label: 'XS - 特小型' },
-  { value: 'S',  label: 'S  - 小型（五人座）' },
-  { value: 'M',  label: 'M  - 中型（七人座）' },
-  { value: 'L',  label: 'L  - 大型' },
-  { value: 'XL', label: 'XL - 特大型' },
+// ── 車型等級定義 ─────────────────────────────────────────────
+// 支援讀取 "XS"/"Extra Small"/"extra small" 等格式
+const VEHICLE_TYPES = [
+  { code: 'XS', full: 'Extra Small', label: 'XS - Extra Small 特小型', order: 1 },
+  { code: 'S',  full: 'Small',       label: 'S - Small 小型（五人座）',  order: 2 },
+  { code: 'M',  full: 'Medium',      label: 'M - Medium 中型（七人座）', order: 3 },
+  { code: 'L',  full: 'Large',       label: 'L - Large 大型',           order: 4 },
+  { code: 'XL', full: 'Extra Large', label: 'XL - Extra Large 特大型',  order: 5 },
 ];
+
+/** 將任意車型字串正規化為標準 code（XS/S/M/L/XL） */
+const normalizeVehicleType = (raw: string): string => {
+  const v = raw.trim().toLowerCase();
+  for (const t of VEHICLE_TYPES) {
+    if (v === t.code.toLowerCase() || v === t.full.toLowerCase()) return t.code;
+  }
+  return raw; // 無法識別時原樣回傳
+};
+
+/** 取得車型排序權重（用於排序比較） */
+const vehicleOrder = (type: string): number => {
+  const found = VEHICLE_TYPES.find(t => t.code === normalizeVehicleType(type));
+  return found ? found.order : 99;
+};
+
+/** 取得車型顯示標籤 */
+const vehicleLabel = (type: string): string => {
+  const code = normalizeVehicleType(type);
+  const found = VEHICLE_TYPES.find(t => t.code === code);
+  return found ? found.label : type;
+};
+
+const VEHICLE_TYPE_OPTIONS = VEHICLE_TYPES.map(t => ({
+  value: t.code,
+  label: t.label,
+}));
 
 const AIRPORTS = [
   { key: 'tsa_price', label: '台北松山 (TSA)', color: '#1890ff' },
   { key: 'tpe_price', label: '桃園國際 (TPE)', color: '#52c41a' },
   { key: 'rmq_price', label: '台中清泉崗 (RMQ)', color: '#fa8c16' },
   { key: 'khh_price', label: '高雄小港 (KHH)', color: '#eb2f96' },
+];
+
+// ── 排序選項 ─────────────────────────────────────────────────
+type SortField = 'vehicle_type' | 'tsa_price' | 'tpe_price' | 'rmq_price' | 'khh_price' | 'min_price' | 'max_price' | 'region' | null;
+type SortDir = 'asc' | 'desc';
+
+const SORT_FIELD_OPTIONS: { value: SortField; label: string }[] = [
+  { value: null,           label: '不排序' },
+  { value: 'vehicle_type', label: '車型等級' },
+  { value: 'tsa_price',    label: '松山 (TSA) 價格' },
+  { value: 'tpe_price',    label: '桃園 (TPE) 價格' },
+  { value: 'rmq_price',    label: '清泉崗 (RMQ) 價格' },
+  { value: 'khh_price',    label: '小港 (KHH) 價格' },
+  { value: 'min_price',    label: '最低價' },
+  { value: 'max_price',    label: '最高價' },
+  { value: 'region',       label: '地區名稱' },
 ];
 
 interface AirportPricing {
@@ -70,6 +119,32 @@ interface AirportPricing {
   updated_at: string;
 }
 
+/** 取得排序值 */
+const getSortValue = (record: AirportPricing, field: SortField): number | string => {
+  if (!field) return 0;
+  if (field === 'vehicle_type') return vehicleOrder(record.vehicle_type);
+  if (field === 'region') return record.region;
+  if (field === 'min_price') {
+    const prices = [record.tsa_price, record.tpe_price, record.rmq_price, record.khh_price].filter(p => p != null) as number[];
+    return prices.length ? Math.min(...prices) : Infinity;
+  }
+  if (field === 'max_price') {
+    const prices = [record.tsa_price, record.tpe_price, record.rmq_price, record.khh_price].filter(p => p != null) as number[];
+    return prices.length ? Math.max(...prices) : -Infinity;
+  }
+  return (record as any)[field] ?? Infinity;
+};
+
+/** 排序標籤文字 */
+const sortLabel = (field: SortField, dir: SortDir): string => {
+  const f = SORT_FIELD_OPTIONS.find(o => o.value === field);
+  if (!f || !f.value) return '';
+  const dirText = field === 'vehicle_type'
+    ? (dir === 'asc' ? 'XS→XL' : 'XL→XS')
+    : (dir === 'asc' ? '低→高' : '高→低');
+  return `${f.label}：${dirText}`;
+};
+
 export default function AirportPricingPage() {
   const [loading, setLoading] = useState(false);
   const [pricingList, setPricingList] = useState<AirportPricing[]>([]);
@@ -80,6 +155,21 @@ export default function AirportPricingPage() {
   const [filterPriceList, setFilterPriceList] = useState<string | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
   const [form] = Form.useForm();
+
+  // ── 排序狀態 ───────────────────────────────────────────────
+  const [primaryField, setPrimaryField]   = useState<SortField>(null);
+  const [primaryDir, setPrimaryDir]       = useState<SortDir>('asc');
+  const [secondaryField, setSecondaryField] = useState<SortField>(null);
+  const [secondaryDir, setSecondaryDir]   = useState<SortDir>('asc');
+
+  const hasSort = primaryField !== null;
+
+  const resetSort = () => {
+    setPrimaryField(null);
+    setPrimaryDir('asc');
+    setSecondaryField(null);
+    setSecondaryDir('asc');
+  };
 
   // ── 載入資料 ───────────────────────────────────────────────
   const loadData = async () => {
@@ -101,11 +191,43 @@ export default function AirportPricingPage() {
 
   useEffect(() => { loadData(); }, [filterVehicleType, filterPriceList]);
 
+  // ── 排序後的資料 ──────────────────────────────────────────
+  const sortedList = useMemo(() => {
+    if (!primaryField) return pricingList;
+
+    return [...pricingList].sort((a, b) => {
+      // 主要排序
+      const av = getSortValue(a, primaryField);
+      const bv = getSortValue(b, primaryField);
+      let cmp = 0;
+      if (typeof av === 'string' && typeof bv === 'string') {
+        cmp = av.localeCompare(bv, 'zh-TW');
+      } else {
+        cmp = (av as number) - (bv as number);
+      }
+      if (primaryDir === 'desc') cmp = -cmp;
+      if (cmp !== 0) return cmp;
+
+      // 次要排序
+      if (!secondaryField) return 0;
+      const av2 = getSortValue(a, secondaryField);
+      const bv2 = getSortValue(b, secondaryField);
+      let cmp2 = 0;
+      if (typeof av2 === 'string' && typeof bv2 === 'string') {
+        cmp2 = av2.localeCompare(bv2, 'zh-TW');
+      } else {
+        cmp2 = (av2 as number) - (bv2 as number);
+      }
+      if (secondaryDir === 'desc') cmp2 = -cmp2;
+      return cmp2;
+    });
+  }, [pricingList, primaryField, primaryDir, secondaryField, secondaryDir]);
+
   // ── 統計數字 ───────────────────────────────────────────────
   const totalCount  = pricingList.length;
   const activeCount = pricingList.filter(r => r.is_active).length;
 
-  // ── 取得所有不重複的價目表名稱 ────────────────────────────
+  // ── 取得所有不重複的價目表名稱（從未篩選的完整資料中取） ──
   const priceListNames = Array.from(new Set(pricingList.map(r => r.price_list_name)));
 
   // ── 切換啟用狀態 ────────────────────────────────────────────
@@ -182,15 +304,15 @@ export default function AirportPricingPage() {
     if (record) {
       setEditingRecord(record);
       form.setFieldsValue({
-        country:        record.country,
+        country:         record.country,
         price_list_name: record.price_list_name,
-        vehicle_type:   record.vehicle_type,
-        region:         record.region,
-        tsa_price:      record.tsa_price,
-        tpe_price:      record.tpe_price,
-        rmq_price:      record.rmq_price,
-        khh_price:      record.khh_price,
-        is_active:      record.is_active,
+        vehicle_type:    normalizeVehicleType(record.vehicle_type),
+        region:          record.region,
+        tsa_price:       record.tsa_price,
+        tpe_price:       record.tpe_price,
+        rmq_price:       record.rmq_price,
+        khh_price:       record.khh_price,
+        is_active:       record.is_active,
       });
     } else {
       setEditingRecord(null);
@@ -206,7 +328,7 @@ export default function AirportPricingPage() {
       const payload = {
         country:         values.country || 'TW',
         price_list_name: values.price_list_name,
-        vehicle_type:    values.vehicle_type,
+        vehicle_type:    normalizeVehicleType(values.vehicle_type),
         region:          values.region,
         tsa_price:       values.tsa_price ?? null,
         tpe_price:       values.tpe_price ?? null,
@@ -252,8 +374,10 @@ export default function AirportPricingPage() {
       title: '車型',
       dataIndex: 'vehicle_type',
       key: 'vehicle_type',
-      width: 80,
-      render: (v: string) => <Tag color="purple">{v}</Tag>,
+      width: 200,
+      render: (v: string) => (
+        <Tag color="purple">{vehicleLabel(v)}</Tag>
+      ),
     },
     ...AIRPORTS.map(airport => ({
       title: airport.label,
@@ -338,37 +462,123 @@ export default function AirportPricingPage() {
       {/* 統計卡片 */}
       <Row gutter={16} className="mb-6">
         <Col xs={12} sm={6}>
-          <Card size="small">
-            <Statistic title="總筆數" value={totalCount} />
-          </Card>
+          <Card size="small"><Statistic title="總筆數" value={totalCount} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card size="small">
-            <Statistic title="啟用中" value={activeCount} valueStyle={{ color: '#52c41a' }} />
-          </Card>
+          <Card size="small"><Statistic title="啟用中" value={activeCount} valueStyle={{ color: '#52c41a' }} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card size="small">
-            <Statistic title="已停用" value={totalCount - activeCount} valueStyle={{ color: '#ff4d4f' }} />
-          </Card>
+          <Card size="small"><Statistic title="已停用" value={totalCount - activeCount} valueStyle={{ color: '#ff4d4f' }} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card size="small">
-            <Statistic title="已選取" value={selectedRowKeys.length} valueStyle={{ color: '#1890ff' }} />
-          </Card>
+          <Card size="small"><Statistic title="已選取" value={selectedRowKeys.length} valueStyle={{ color: '#1890ff' }} /></Card>
         </Col>
       </Row>
+
+      {/* 排序控制區 */}
+      <Card size="small" className="mb-4" styles={{ body: { padding: '12px 16px' } }}>
+        <Row gutter={[16, 8]} align="middle">
+          <Col>
+            <SortAscendingOutlined style={{ fontSize: 16, marginRight: 4 }} />
+            <Text strong>排序</Text>
+          </Col>
+
+          {/* 主要排序 */}
+          <Col>
+            <Space size={4}>
+              <Text type="secondary" style={{ fontSize: 12 }}>主要：</Text>
+              <Select
+                value={primaryField}
+                onChange={(v) => { setPrimaryField(v); if (!v) { setSecondaryField(null); } }}
+                style={{ width: 160 }}
+                size="small"
+              >
+                {SORT_FIELD_OPTIONS.map(o => (
+                  <Option key={String(o.value)} value={o.value}>{o.label}</Option>
+                ))}
+              </Select>
+              {primaryField && (
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<SwapOutlined />}
+                  onClick={() => setPrimaryDir(d => d === 'asc' ? 'desc' : 'asc')}
+                >
+                  {primaryField === 'vehicle_type'
+                    ? (primaryDir === 'asc' ? 'XS→XL' : 'XL→XS')
+                    : primaryField === 'region'
+                      ? (primaryDir === 'asc' ? 'A→Z' : 'Z→A')
+                      : (primaryDir === 'asc' ? '低→高' : '高→低')
+                  }
+                </Button>
+              )}
+            </Space>
+          </Col>
+
+          {/* 次要排序 */}
+          {primaryField && (
+            <Col>
+              <Space size={4}>
+                <Text type="secondary" style={{ fontSize: 12 }}>次要：</Text>
+                <Select
+                  value={secondaryField}
+                  onChange={setSecondaryField}
+                  style={{ width: 160 }}
+                  size="small"
+                >
+                  {SORT_FIELD_OPTIONS
+                    .filter(o => o.value !== primaryField)
+                    .map(o => (
+                      <Option key={String(o.value)} value={o.value}>{o.label}</Option>
+                    ))}
+                </Select>
+                {secondaryField && (
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<SwapOutlined />}
+                    onClick={() => setSecondaryDir(d => d === 'asc' ? 'desc' : 'asc')}
+                  >
+                    {secondaryField === 'vehicle_type'
+                      ? (secondaryDir === 'asc' ? 'XS→XL' : 'XL→XS')
+                      : secondaryField === 'region'
+                        ? (secondaryDir === 'asc' ? 'A→Z' : 'Z→A')
+                        : (secondaryDir === 'asc' ? '低→高' : '高→低')
+                    }
+                  </Button>
+                )}
+              </Space>
+            </Col>
+          )}
+
+          {/* 重設 */}
+          {hasSort && (
+            <Col>
+              <Button size="small" icon={<UndoOutlined />} onClick={resetSort}>重設排序</Button>
+            </Col>
+          )}
+
+          {/* 目前排序狀態標籤 */}
+          {hasSort && (
+            <Col flex="auto" style={{ textAlign: 'right' }}>
+              <Space size={4}>
+                <Tag color="blue">{sortLabel(primaryField, primaryDir)}</Tag>
+                {secondaryField && <Tag color="geekblue">{sortLabel(secondaryField, secondaryDir)}</Tag>}
+              </Space>
+            </Col>
+          )}
+        </Row>
+      </Card>
 
       {/* 主要列表 */}
       <Card
         title="定價列表"
         extra={
           <Space wrap>
-            {/* 篩選 */}
             <Select
               allowClear
               placeholder="篩選車型"
-              style={{ width: 160 }}
+              style={{ width: 200 }}
               onChange={v => setFilterVehicleType(v || null)}
             >
               {VEHICLE_TYPE_OPTIONS.map(o => (
@@ -395,7 +605,7 @@ export default function AirportPricingPage() {
           </Space>
         }
       >
-        {/* 批次操作列（有選取時顯示） */}
+        {/* 批次操作列 */}
         {selectedRowKeys.length > 0 && (
           <div
             className="mb-4 p-3 rounded"
@@ -403,20 +613,10 @@ export default function AirportPricingPage() {
           >
             <Space>
               <Text strong>已選取 {selectedRowKeys.length} 筆</Text>
-              <Button
-                size="small"
-                icon={<CheckCircleOutlined />}
-                onClick={() => batchSetActive(true)}
-                loading={batchLoading}
-              >
+              <Button size="small" icon={<CheckCircleOutlined />} onClick={() => batchSetActive(true)} loading={batchLoading}>
                 批次啟用
               </Button>
-              <Button
-                size="small"
-                icon={<StopOutlined />}
-                onClick={() => batchSetActive(false)}
-                loading={batchLoading}
-              >
+              <Button size="small" icon={<StopOutlined />} onClick={() => batchSetActive(false)} loading={batchLoading}>
                 批次停用
               </Button>
               <Popconfirm
@@ -431,24 +631,19 @@ export default function AirportPricingPage() {
                   批次刪除
                 </Button>
               </Popconfirm>
-              <Button size="small" onClick={() => setSelectedRowKeys([])}>
-                取消選取
-              </Button>
+              <Button size="small" onClick={() => setSelectedRowKeys([])}>取消選取</Button>
             </Space>
           </div>
         )}
 
         <Table
-          dataSource={pricingList}
+          dataSource={sortedList}
           columns={columns}
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 50, showSizeChanger: true, showTotal: t => `共 ${t} 筆` }}
-          scroll={{ x: 1000 }}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: setSelectedRowKeys,
-          }}
+          scroll={{ x: 1200 }}
+          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           size="small"
         />
       </Card>
@@ -491,12 +686,7 @@ export default function AirportPricingPage() {
             {AIRPORTS.map(a => (
               <Col span={12} key={a.key}>
                 <Form.Item label={a.label} name={a.key}>
-                  <InputNumber
-                    min={0}
-                    style={{ width: '100%' }}
-                    addonBefore="NT$"
-                    placeholder="輸入價格"
-                  />
+                  <InputNumber min={0} style={{ width: '100%' }} addonBefore="NT$" placeholder="輸入價格" />
                 </Form.Item>
               </Col>
             ))}
@@ -508,12 +698,8 @@ export default function AirportPricingPage() {
 
           <Form.Item className="mb-0 text-right">
             <Space>
-              <Button onClick={() => { setIsModalVisible(false); form.resetFields(); }}>
-                取消
-              </Button>
-              <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>
-                儲存
-              </Button>
+              <Button onClick={() => { setIsModalVisible(false); form.resetFields(); }}>取消</Button>
+              <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>儲存</Button>
             </Space>
           </Form.Item>
         </Form>
