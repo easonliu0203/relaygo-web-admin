@@ -60,6 +60,7 @@ export class CustomerServiceChatService {
                 lastMessageTime: data.lastMessageTime?.toDate() || new Date(),
                 unreadCount: data.unreadCount || 0,
                 createdAt: data.createdAt?.toDate() || new Date(),
+                customerLang: data.customerLang ?? undefined,
               };
             });
             onUpdate(chats);

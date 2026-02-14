@@ -20,6 +20,7 @@ export interface CustomerServiceChat {
   lastMessageTime: Date;
   unreadCount: number;
   createdAt: Date;
+  customerLang?: string;
 }
 
 interface ChatListProps {

@@ -75,7 +75,12 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, adminId, adminNa
   }, [selectedChat]);
 
   // 自動翻譯客人/司機訊息為中文（供管理員閱讀）
+  // 若客人語言已是 zh-TW，則跳過翻譯
   useEffect(() => {
+    const customerLang = selectedChat?.customerLang;
+    // 客人使用 zh-TW 時不需翻譯（與管理員語言相同）
+    if (customerLang === 'zh-TW') return;
+
     const cache = translationCacheRef.current;
     const untranslated = messages.filter(
       (msg) => msg.senderType !== 'admin' && !cache.has(msg.id)
@@ -90,16 +95,19 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, adminId, adminNa
         }
       });
     });
-  }, [messages]);
+  }, [messages, selectedChat?.customerLang]);
 
-  // 發送訊息（管理員中文 → 自動翻成英文給客人）
+  // 發送訊息（管理員中文 → 自動翻成客人語言）
   const handleSendMessage = async (message: string) => {
     if (!selectedChat) return;
 
     setSending(true);
     try {
-      // 翻譯成英文，存入 translatedMessage 給客人顯示
-      const translatedMessage = await translateText(message, 'en');
+      const customerLang = selectedChat.customerLang ?? 'en';
+      // 客人語言與管理員語言（zh-TW）相同時，不需翻譯
+      const translatedMessage =
+        customerLang !== 'zh-TW' ? await translateText(message, customerLang) : null;
+
       await CustomerServiceChatService.sendMessage(
         selectedChat.id,
         message,
