@@ -123,6 +123,15 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, adminId, adminNa
     }
   };
 
+  // 選擇對話並標記為已讀
+  const handleSelectChat = (chat: CustomerServiceChat) => {
+    setSelectedChat(chat);
+    // 若有未讀訊息，立即重置 Firestore unreadCount 為 0
+    if (chat.unreadCount > 0) {
+      CustomerServiceChatService.markAsRead(chat.id);
+    }
+  };
+
   // 返回對話列表
   const handleBack = () => {
     setSelectedChat(null);
@@ -168,7 +177,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, adminId, adminNa
             chats={chats}
             loading={loading}
             selectedChatId={null}
-            onSelectChat={setSelectedChat}
+            onSelectChat={handleSelectChat}
           />
         )}
       </Card>

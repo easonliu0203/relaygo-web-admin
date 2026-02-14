@@ -156,6 +156,24 @@ export class CustomerServiceChatService {
   }
 
   /**
+   * 標記聊天室訊息為已讀（重置 unreadCount 為 0）
+   * 管理員進入聊天室時呼叫
+   */
+  static async markAsRead(chatId: string): Promise<void> {
+    try {
+      await initializeFirebase();
+      const db = getDb();
+      if (!db) throw new Error('Firebase not initialized');
+
+      const chatRef = doc(db, 'customer_service_chats', chatId);
+      await updateDoc(chatRef, { unreadCount: 0 });
+    } catch (error) {
+      console.error('標記已讀失敗:', error);
+      // 靜默失敗，不阻斷主要聊天功能
+    }
+  }
+
+  /**
    * 發送訊息（管理員）
    */
   static async sendMessage(
