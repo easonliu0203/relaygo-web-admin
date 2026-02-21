@@ -82,10 +82,18 @@ export default function DriverDetailPage() {
 
   // 車型對應
   const vehicleTypeMap: Record<string, string> = {
+    XS: 'XS — Extra Small',
+    S: 'S — Small',
+    M: 'M — Medium',
+    L: 'L — Large',
+    XL: 'XL — Extra Large',
+    // 舊值相容
     A: '豪華9人座',
     B: '標準8人座',
     C: '舒適4人座',
     D: '經濟3人座',
+    small: '小型車',
+    large: '大型車',
   };
 
   // 格式化日期時間

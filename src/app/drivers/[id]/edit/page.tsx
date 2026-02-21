@@ -208,8 +208,11 @@ export default function DriverEditPage() {
             extra="選擇司機的車輛類型"
           >
             <Select placeholder="請選擇車型分類" allowClear>
-              <Option value="small">小型車（3-4人座）</Option>
-              <Option value="large">大型車（8-9人座）</Option>
+              <Option value="XS">XS — Extra Small</Option>
+              <Option value="S">S — Small</Option>
+              <Option value="M">M — Medium</Option>
+              <Option value="L">L — Large</Option>
+              <Option value="XL">XL — Extra Large</Option>
             </Select>
           </Form.Item>
 

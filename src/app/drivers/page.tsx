@@ -96,11 +96,18 @@ export default function DriversPage() {
   };
 
   // 車型對應
-  const vehicleTypeMap = {
+  const vehicleTypeMap: Record<string, string> = {
+    XS: 'XS',
+    S: 'S',
+    M: 'M',
+    L: 'L',
+    XL: 'XL',
     A: '豪華9人座',
     B: '標準8人座',
     C: '舒適4人座',
     D: '經濟3人座',
+    small: '小型車',
+    large: '大型車',
   };
 
   // 表格欄位
@@ -295,10 +302,11 @@ export default function DriversPage() {
               style={{ width: '100%' }}
             >
               <Option value="all">全部車型</Option>
-              <Option value="A">豪華9人座</Option>
-              <Option value="B">標準8人座</Option>
-              <Option value="C">舒適4人座</Option>
-              <Option value="D">經濟3人座</Option>
+              <Option value="XS">XS — Extra Small</Option>
+              <Option value="S">S — Small</Option>
+              <Option value="M">M — Medium</Option>
+              <Option value="L">L — Large</Option>
+              <Option value="XL">XL — Extra Large</Option>
             </Select>
           </Col>
         </Row>
