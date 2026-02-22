@@ -98,6 +98,7 @@ const menuItems = [
     label: '系統設定',
     children: [
       { key: '/settings/pricing', label: '價格設定' },
+      { key: '/settings/airport-vehicle-types', label: '機場接送車型' },
       { key: '/settings/airport-pricing', label: '機場接送價格' },
       { key: '/settings/tour-packages', label: '旅遊方案' },
       { key: '/settings/instant-ride-pricing', label: '即時派車價格' },
