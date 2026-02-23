@@ -37,16 +37,11 @@ import {
   LoadingOutlined,
   EnvironmentOutlined,
 } from '@ant-design/icons';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { FirebaseService } from '@/lib/firebase';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
 
 // 翻譯 API 端點
 const TRANSLATE_API_URL = 'https://asia-east1-ride-platform-f1676.cloudfunctions.net/translate';

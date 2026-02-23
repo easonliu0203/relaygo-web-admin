@@ -39,7 +39,7 @@ import {
   FileProtectOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { FirebaseService } from '@/lib/firebase';
 
 // React Quill 需要動態載入（SSR 不支援）
@@ -48,11 +48,6 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
 
 // 翻譯 API 端點
 const TRANSLATE_API_URL = 'https://asia-east1-ride-platform-f1676.cloudfunctions.net/translate';
