@@ -24,10 +24,12 @@ import {
   Badge,
   Alert,
   Tooltip,
+  Segmented,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
+  ExportOutlined,
   DeleteOutlined,
   ReloadOutlined,
   SaveOutlined,
@@ -126,6 +128,15 @@ export default function LegalDocumentsPage() {
 
   // 富文本內容狀態（因為 React Quill 不適合用 Form 直接控制）
   const [contentByLang, setContentByLang] = useState<Record<string, string>>({});
+
+  // 預覽 Modal 狀態
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [previewLang, setPreviewLang] = useState('zh-TW');
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewContent, setPreviewContent] = useState('');
+  const [previewMeta, setPreviewMeta] = useState({ version: 1, updatedAt: '' });
+  const [previewRecord, setPreviewRecord] = useState<LegalDocument | null>(null);
+  const [previewSource, setPreviewSource] = useState<'record' | 'editing'>('record');
 
   // ── 翻譯 ────────────────────────────────────────────────────
 
@@ -506,38 +517,95 @@ export default function LegalDocumentsPage() {
 
   // ── 預覽 ────────────────────────────────────────────────────
 
-  const previewDocument = (record: LegalDocument) => {
-    const lang = 'zh-TW';
-    const title = record.title_i18n?.[lang] || record.title;
-    const content = record.content_i18n?.[lang] || record.content;
-
-    const html = `<!DOCTYPE html>
-<html lang="zh-TW">
+  const generatePreviewHtml = (title: string, content: string, lang: string, version?: number, updatedAt?: string) => {
+    const footer = version
+      ? `<div class="footer">v${version} · ${updatedAt ? new Date(updatedAt).toLocaleString('zh-TW') : ''}</div>`
+      : '';
+    return `<!DOCTYPE html>
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #333; line-height: 1.8; }
-    h1 { color: #1a1a1a; border-bottom: 2px solid #1890ff; padding-bottom: 12px; }
-    h2, h3, h4 { color: #333; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #333; line-height: 1.8; font-size: 15px; }
+    h1 { font-size: 22px; color: #1a1a1a; border-bottom: 2px solid #1890ff; padding-bottom: 12px; margin-bottom: 16px; }
+    h2 { font-size: 18px; color: #333; margin: 20px 0 8px; }
+    h3, h4 { color: #555; margin: 16px 0 6px; }
     p { margin: 8px 0; }
     a { color: #1890ff; }
-    ul, ol { padding-left: 24px; }
-    blockquote { border-left: 4px solid #1890ff; margin: 16px 0; padding: 8px 16px; background: #f5f5f5; }
+    ul, ol { padding-left: 24px; margin: 8px 0; }
+    li { margin: 4px 0; }
+    blockquote { border-left: 4px solid #1890ff; margin: 16px 0; padding: 8px 16px; background: #f5f5f5; border-radius: 0 4px 4px 0; }
+    img { max-width: 100%; height: auto; }
+    strong { font-weight: 600; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e8e8e8; color: #999; font-size: 12px; }
   </style>
 </head>
 <body>
   <h1>${title}</h1>
   ${content}
-  <hr style="margin-top: 40px; border: none; border-top: 1px solid #ddd;">
-  <p style="color: #999; font-size: 12px;">版本 v${record.version} · 最後更新 ${new Date(record.updated_at).toLocaleString('zh-TW')}</p>
+  ${footer}
 </body>
 </html>`;
+  };
 
+  /** 從總覽頁預覽（使用已儲存的 record 資料） */
+  const previewDocument = (record: LegalDocument, lang?: string) => {
+    const initialLang = lang || 'zh-TW';
+    setPreviewMeta({ version: record.version, updatedAt: record.updated_at });
+    setPreviewLang(initialLang);
+
+    // 建立一個 helper 用於切換語言時取資料
+    const getContent = (l: string) => {
+      const t = record.title_i18n?.[l] || (l === 'zh-TW' ? record.title : '');
+      const c = record.content_i18n?.[l] || (l === 'zh-TW' ? record.content : '');
+      return { title: t, content: c };
+    };
+
+    const { title, content } = getContent(initialLang);
+    setPreviewTitle(title);
+    setPreviewContent(content);
+
+    // 存 record 引用以供語言切換
+    setPreviewRecord(record);
+    setPreviewSource('record');
+    setIsPreviewVisible(true);
+  };
+
+  /** 從編輯頁預覽（使用即時編輯中的 contentByLang 資料） */
+  const previewEditingContent = (lang: string) => {
+    const title = form.getFieldValue(['title_i18n', lang]) || '';
+    const content = contentByLang[lang] || '';
+    setPreviewTitle(title);
+    setPreviewContent(content);
+    setPreviewLang(lang);
+    setPreviewMeta({ version: editingRecord?.version || 0, updatedAt: '' });
+    setPreviewRecord(null);
+    setPreviewSource('editing');
+    setIsPreviewVisible(true);
+  };
+
+  /** 預覽語言切換 */
+  const handlePreviewLangChange = (lang: string) => {
+    setPreviewLang(lang);
+    if (previewSource === 'record' && previewRecord) {
+      const t = previewRecord.title_i18n?.[lang] || (lang === 'zh-TW' ? previewRecord.title : '');
+      const c = previewRecord.content_i18n?.[lang] || (lang === 'zh-TW' ? previewRecord.content : '');
+      setPreviewTitle(t);
+      setPreviewContent(c);
+    } else if (previewSource === 'editing') {
+      setPreviewTitle(form.getFieldValue(['title_i18n', lang]) || '');
+      setPreviewContent(contentByLang[lang] || '');
+    }
+  };
+
+  /** 在新分頁開啟預覽 */
+  const openPreviewInNewTab = () => {
+    const html = generatePreviewHtml(previewTitle, previewContent, previewLang, previewMeta.version, previewMeta.updatedAt);
     const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    window.open(URL.createObjectURL(blob), '_blank');
   };
 
   // ── 富文本內容變更 ──────────────────────────────────────────
@@ -874,7 +942,22 @@ export default function LegalDocumentsPage() {
                       )}
 
                       <Form.Item
-                        label={`標題 (${lang.name})`}
+                        label={
+                          <Space>
+                            {`標題 (${lang.name})`}
+                            <Tooltip title={`預覽${lang.name}版本`}>
+                              <Button
+                                type="link"
+                                size="small"
+                                icon={<EyeOutlined />}
+                                onClick={() => previewEditingContent(lang.code)}
+                                style={{ padding: 0, height: 'auto' }}
+                              >
+                                預覽
+                              </Button>
+                            </Tooltip>
+                          </Space>
+                        }
                         name={['title_i18n', lang.code]}
                         rules={lang.code === 'zh-TW' ? [{ required: true, message: '請輸入繁體中文標題' }] : []}
                       >
@@ -914,6 +997,61 @@ export default function LegalDocumentsPage() {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 預覽 Modal */}
+      <Modal
+        title={
+          <Space>
+            <EyeOutlined />
+            <span>文件預覽</span>
+            <Button
+              type="link"
+              size="small"
+              icon={<ExportOutlined />}
+              onClick={openPreviewInNewTab}
+            >
+              新分頁開啟
+            </Button>
+          </Space>
+        }
+        open={isPreviewVisible}
+        onCancel={() => setIsPreviewVisible(false)}
+        footer={null}
+        width={900}
+        styles={{ body: { padding: 0 } }}
+      >
+        {/* 語言切換列 */}
+        <div style={{ padding: '12px 24px', borderBottom: '1px solid #f0f0f0' }}>
+          <Segmented
+            value={previewLang}
+            onChange={(val) => handlePreviewLangChange(val as string)}
+            options={SUPPORTED_LANGUAGES.map(l => ({
+              value: l.code,
+              label: `${l.flag} ${l.name}`,
+            }))}
+            size="small"
+          />
+        </div>
+
+        {/* 預覽內容 */}
+        <div style={{ padding: '0 24px 24px' }}>
+          {previewTitle || previewContent ? (
+            <iframe
+              srcDoc={generatePreviewHtml(previewTitle, previewContent, previewLang, previewMeta.version, previewMeta.updatedAt)}
+              style={{ width: '100%', height: '60vh', border: 'none', marginTop: 16 }}
+              title="文件預覽"
+            />
+          ) : (
+            <Alert
+              message="尚未提供此語言版本"
+              description={`目前「${SUPPORTED_LANGUAGES.find(l => l.code === previewLang)?.name || previewLang}」版本尚無內容，請先編輯或翻譯。`}
+              type="warning"
+              showIcon
+              style={{ marginTop: 16 }}
+            />
+          )}
+        </div>
       </Modal>
     </div>
   );
