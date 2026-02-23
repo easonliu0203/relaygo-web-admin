@@ -154,6 +154,66 @@ export default function LegalDocumentsPage() {
     return result.translatedText || '';
   };
 
+  // 分隔符號（翻譯 API 不會吞掉的特殊標記）
+  const SEP = '\n[[[SEP]]]\n';
+
+  /**
+   * 保留 HTML 結構翻譯：
+   * 1. 用 DOMParser 解析 HTML
+   * 2. 收集所有文字節點
+   * 3. 批次翻譯（用分隔符號串接，一次 API call）
+   * 4. 將翻譯結果填回原位
+   * 5. 序列化回 HTML
+   */
+  const translateHtmlContent = async (html: string, targetLang: string): Promise<string> => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // 收集所有有實質文字的 text node
+    const textNodes: Text[] = [];
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        const text = node.textContent?.trim();
+        return text ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      },
+    });
+    while (walker.nextNode()) {
+      textNodes.push(walker.currentNode as Text);
+    }
+
+    if (textNodes.length === 0) return html;
+
+    // 收集原文（保留前後空白）
+    const origTexts = textNodes.map(n => n.textContent || '');
+
+    // 批次翻譯：用分隔符號串接成一個字串
+    const combined = origTexts.join(SEP);
+    const translatedCombined = await translateField(combined, targetLang);
+
+    // 拆分翻譯結果
+    const translatedParts = translatedCombined.split(/\[{3}SEP\]{3}/);
+
+    // 將翻譯結果填回 DOM（數量必須一致才替換）
+    if (translatedParts.length === textNodes.length) {
+      textNodes.forEach((node, i) => {
+        node.textContent = translatedParts[i].trim();
+      });
+    } else {
+      // Fallback: 逐段翻譯（較慢但安全）
+      for (const node of textNodes) {
+        const text = node.textContent?.trim();
+        if (text) {
+          try {
+            const translated = await translateField(text, targetLang);
+            node.textContent = translated;
+          } catch { /* 保留原文 */ }
+        }
+      }
+    }
+
+    return doc.body.innerHTML;
+  };
+
   const translateToLanguage = async (targetLang: string) => {
     const langKey = `translate_${targetLang}`;
     try {
@@ -179,13 +239,8 @@ export default function LegalDocumentsPage() {
 
       if (zhTWContent) {
         try {
-          // 移除 HTML 標籤翻譯純文字，再包回去（避免翻譯破壞 HTML 結構）
-          const plainText = zhTWContent.replace(/<[^>]+>/g, '');
-          if (plainText.trim()) {
-            const translated = await translateField(plainText, targetLang);
-            // 用簡單的 HTML 包裝翻譯結果
-            setContentByLang(prev => ({ ...prev, [targetLang]: `<p>${translated}</p>` }));
-          }
+          const translatedHtml = await translateHtmlContent(zhTWContent, targetLang);
+          setContentByLang(prev => ({ ...prev, [targetLang]: translatedHtml }));
         } catch (e) {
           console.error(`翻譯內容 ${targetLang} 失敗:`, e);
         }
@@ -225,11 +280,8 @@ export default function LegalDocumentsPage() {
         }
 
         if (zhTWContent) {
-          const plainText = zhTWContent.replace(/<[^>]+>/g, '');
-          if (plainText.trim()) {
-            const translatedContent = await translateField(plainText, lang.code);
-            setContentByLang(prev => ({ ...prev, [lang.code]: `<p>${translatedContent}</p>` }));
-          }
+          const translatedHtml = await translateHtmlContent(zhTWContent, lang.code);
+          setContentByLang(prev => ({ ...prev, [lang.code]: translatedHtml }));
         }
 
         successCount++;
