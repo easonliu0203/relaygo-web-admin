@@ -40,6 +40,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",
     "react-hot-toast": "^2.4.1",
+    "react-quill-new": "^3.8.3",
     "recharts": "^2.8.0",
     "socket.io-client": "^4.7.0",
     "swr": "^2.2.4",

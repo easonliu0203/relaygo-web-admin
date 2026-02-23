@@ -12,6 +12,7 @@ import {
   SettingOutlined,
   BarChartOutlined,
   RocketOutlined,
+  FileProtectOutlined,
   LogoutOutlined,
   BellOutlined,
   MenuFoldOutlined,
@@ -90,6 +91,14 @@ const menuItems = [
       { key: '/marketing/influencers', label: '網紅管理' },
       { key: '/marketing/affiliates', label: '客戶推廣人管理' },
       { key: '/marketing/driver-affiliates', label: '司機推廣人管理' },
+    ],
+  },
+  {
+    key: '/legal',
+    icon: <FileProtectOutlined />,
+    label: '隱私權與合作條約',
+    children: [
+      { key: '/legal/documents', label: '條約文件管理' },
     ],
   },
   {
