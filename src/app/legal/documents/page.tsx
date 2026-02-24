@@ -464,13 +464,16 @@ export default function LegalDocumentsPage() {
 
   // ── 儲存 ────────────────────────────────────────────────────
 
-  const handleSave = async (values: any) => {
+  const handleSave = async () => {
     try {
+      // 用 getFieldsValue(true) 取得所有欄位值（含未掛載的 Tab 內容）
+      const allValues = form.getFieldsValue(true);
+
       const title_i18n: Record<string, string> = {};
       const content_i18n: Record<string, string> = {};
 
       SUPPORTED_LANGUAGES.forEach(lang => {
-        const titleVal = values.title_i18n?.[lang.code];
+        const titleVal = allValues.title_i18n?.[lang.code];
         if (titleVal) title_i18n[lang.code] = titleVal;
 
         const contentVal = contentByLang[lang.code];
@@ -481,14 +484,14 @@ export default function LegalDocumentsPage() {
       const defaultContent = content_i18n['zh-TW'] || '';
 
       const payload = {
-        role: values.role,
-        doc_key: values.doc_key,
+        role: allValues.role,
+        doc_key: allValues.doc_key,
         title: defaultTitle,
         title_i18n,
         content: defaultContent,
         content_i18n,
-        sort_order: values.sort_order ?? 0,
-        is_active: values.is_active ?? true,
+        sort_order: allValues.sort_order ?? 0,
+        is_active: allValues.is_active ?? true,
       };
 
       if (editingRecord) {
@@ -905,6 +908,7 @@ export default function LegalDocumentsPage() {
             <Tabs
               activeKey={activeTab}
               onChange={setActiveTab}
+              destroyInactiveTabPane={false}
               items={SUPPORTED_LANGUAGES.map(lang => {
                 const hasTitle = editingRecord
                   ? !!(editingRecord.title_i18n?.[lang.code])
