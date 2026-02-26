@@ -50,18 +50,20 @@ interface Affiliate {
   discount_amount: number;
   discount_percentage_enabled: boolean;
   discount_percentage: number;
-  // ✅ 新增：服務類型維度折扣欄位
+  // 服務類型維度折扣欄位
   discount_type: 'unified' | 'by_service_type';
   discount_percent_charter: number | null;
   discount_percent_instant_ride: number | null;
+  discount_percent_airport_transfer: number | null;
   commission_fixed: number;
   commission_percent: number;
   is_commission_fixed_active: boolean;
   is_commission_percent_active: boolean;
-  // ✅ 新增：服務類型維度分潤欄位
+  // 服務類型維度分潤欄位
   commission_type: 'unified' | 'by_service_type';
   commission_percent_charter: number | null;
   commission_percent_instant_ride: number | null;
+  commission_percent_airport_transfer: number | null;
   total_referrals: number;
   total_earnings: number;
   is_active: boolean;
@@ -188,19 +190,21 @@ export default function AffiliatesPage() {
       discount_amount: record.discount_amount,
       discount_percentage_enabled: record.discount_percentage_enabled,
       discount_percentage: record.discount_percentage,
-      // ✅ 新增：服務類型維度折扣欄位
+      // 服務類型維度折扣欄位
       discount_type: record.discount_type || 'unified',
       discount_percent_charter: record.discount_percent_charter,
       discount_percent_instant_ride: record.discount_percent_instant_ride,
+      discount_percent_airport_transfer: record.discount_percent_airport_transfer,
       commission_fixed: record.commission_fixed,
       commission_percent: record.commission_percent,
       is_commission_fixed_active: record.is_commission_fixed_active,
       is_commission_percent_active: record.is_commission_percent_active,
       is_active: record.is_active,
-      // ✅ 服務類型維度分潤欄位
+      // 服務類型維度分潤欄位
       commission_type: record.commission_type || 'unified',
       commission_percent_charter: record.commission_percent_charter,
       commission_percent_instant_ride: record.commission_percent_instant_ride,
+      commission_percent_airport_transfer: record.commission_percent_airport_transfer,
     });
     setEditModalVisible(true);
   };
@@ -280,14 +284,24 @@ export default function AffiliatesPage() {
     {
       title: '折扣設定',
       key: 'discount',
-      width: 150,
+      width: 180,
       render: (_, record) => (
         <Space direction="vertical" size="small">
           {record.discount_amount_enabled && (
             <Tag color="green">固定 NT$ {record.discount_amount}</Tag>
           )}
           {record.discount_percentage_enabled && (
-            <Tag color="blue">{record.discount_percentage}% 折扣</Tag>
+            <>
+              {record.discount_type === 'by_service_type' ? (
+                <>
+                  <Tag color="blue">包車 {record.discount_percent_charter ?? 0}%</Tag>
+                  <Tag color="green">派車 {record.discount_percent_instant_ride ?? 0}%</Tag>
+                  <Tag color="geekblue">機場 {record.discount_percent_airport_transfer ?? 0}%</Tag>
+                </>
+              ) : (
+                <Tag color="blue">{record.discount_percentage}% 折扣</Tag>
+              )}
+            </>
           )}
           {!record.discount_amount_enabled && !record.discount_percentage_enabled && (
             <Text type="secondary">無折扣</Text>
@@ -310,6 +324,7 @@ export default function AffiliatesPage() {
                 <>
                   <Tag color="purple">包車 {record.commission_percent_charter ?? 0}%</Tag>
                   <Tag color="cyan">派車 {record.commission_percent_instant_ride ?? 0}%</Tag>
+                  <Tag color="geekblue">機場 {record.commission_percent_airport_transfer ?? 0}%</Tag>
                 </>
               ) : (
                 <Tag color="purple">{record.commission_percent}% 分潤</Tag>
@@ -608,7 +623,7 @@ export default function AffiliatesPage() {
                   <Form.Item
                     name="discount_type"
                     label="折扣模式"
-                    tooltip="統一比例：所有服務類型使用相同百分比。依服務類型：包車旅遊和即時派車可設定不同百分比。"
+                    tooltip="統一比例：所有服務類型使用相同百分比。依服務類型：包車旅遊、即時派車和機場接送可設定不同百分比。"
                   >
                     <Radio.Group>
                       <Radio value="unified">統一比例</Radio>
@@ -623,7 +638,7 @@ export default function AffiliatesPage() {
                       if (discountType === 'by_service_type') {
                         return (
                           <Row gutter={16}>
-                            <Col span={12}>
+                            <Col span={8}>
                               <Form.Item
                                 name="discount_percent_charter"
                                 label="包車旅遊折扣 (%)"
@@ -633,7 +648,7 @@ export default function AffiliatesPage() {
                                 <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 10" />
                               </Form.Item>
                             </Col>
-                            <Col span={12}>
+                            <Col span={8}>
                               <Form.Item
                                 name="discount_percent_instant_ride"
                                 label="即時派車折扣 (%)"
@@ -641,6 +656,16 @@ export default function AffiliatesPage() {
                                 rules={[{ required: true, message: '請輸入即時派車折扣百分比' }]}
                               >
                                 <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 5" />
+                              </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                              <Form.Item
+                                name="discount_percent_airport_transfer"
+                                label="機場接送折扣 (%)"
+                                tooltip="適用於機場接送訂單的折扣百分比"
+                                rules={[{ required: true, message: '請輸入機場接送折扣百分比' }]}
+                              >
+                                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 8" />
                               </Form.Item>
                             </Col>
                           </Row>
@@ -707,7 +732,7 @@ export default function AffiliatesPage() {
                   <Form.Item
                     name="commission_type"
                     label="分潤模式"
-                    tooltip="統一比例：所有服務類型使用相同百分比。依服務類型：包車旅遊和即時派車可設定不同百分比。"
+                    tooltip="統一比例：所有服務類型使用相同百分比。依服務類型：包車旅遊、即時派車和機場接送可設定不同百分比。"
                   >
                     <Radio.Group>
                       <Radio value="unified">統一比例</Radio>
@@ -722,7 +747,7 @@ export default function AffiliatesPage() {
                       if (commissionType === 'by_service_type') {
                         return (
                           <Row gutter={16}>
-                            <Col span={12}>
+                            <Col span={8}>
                               <Form.Item
                                 name="commission_percent_charter"
                                 label="包車旅遊分潤 (%)"
@@ -732,7 +757,7 @@ export default function AffiliatesPage() {
                                 <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 5" />
                               </Form.Item>
                             </Col>
-                            <Col span={12}>
+                            <Col span={8}>
                               <Form.Item
                                 name="commission_percent_instant_ride"
                                 label="即時派車分潤 (%)"
@@ -740,6 +765,16 @@ export default function AffiliatesPage() {
                                 rules={[{ required: true, message: '請輸入即時派車分潤百分比' }]}
                               >
                                 <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 3" />
+                              </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                              <Form.Item
+                                name="commission_percent_airport_transfer"
+                                label="機場接送分潤 (%)"
+                                tooltip="適用於機場接送訂單的分潤百分比"
+                                rules={[{ required: true, message: '請輸入機場接送分潤百分比' }]}
+                              >
+                                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="例: 5" />
                               </Form.Item>
                             </Col>
                           </Row>
