@@ -132,25 +132,36 @@ export async function GET(request: NextRequest) {
     const signatureMap = new Map();
 
     if (bookingIds.length > 0) {
+      // ORDER BY created_at DESC，確保取最新那筆
+      // 並用「只設定一次」策略讓最新的優先
       const { data: payments } = await db.supabase
         .from('payments')
         .select('id, booking_id, type, status, transaction_id, external_transaction_id, payment_method, amount, created_at')
         .in('booking_id', bookingIds)
-        .eq('status', 'completed');
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
 
+      // 最新的先跑到，set 過就不再覆蓋 → 確保最新一筆勝出
       payments?.forEach((p: any) => {
-        if (p.type === 'deposit') depositPaymentMap.set(p.booking_id, p);
-        if (p.type === 'balance') balancePaymentMap.set(p.booking_id, p);
+        if (p.type === 'deposit' && !depositPaymentMap.has(p.booking_id)) {
+          depositPaymentMap.set(p.booking_id, p);
+        }
+        if (p.type === 'balance' && !balancePaymentMap.has(p.booking_id)) {
+          balancePaymentMap.set(p.booking_id, p);
+        }
       });
 
-      // 批次查詢客戶數位簽名
+      // 批次查詢客戶數位簽名（取最新一筆）
       const { data: signatures } = await db.supabase
         .from('payment_signatures')
         .select('booking_id, signature_url, signature_base64, signed_at')
-        .in('booking_id', bookingIds);
+        .in('booking_id', bookingIds)
+        .order('created_at', { ascending: false });
 
       signatures?.forEach((s: any) => {
-        signatureMap.set(s.booking_id, s);
+        if (!signatureMap.has(s.booking_id)) {
+          signatureMap.set(s.booking_id, s);
+        }
       });
     }
 
@@ -233,15 +244,15 @@ export async function GET(request: NextRequest) {
         policyAgreed: booking.policy_agreed,
         policyAgreedAt: booking.policy_agreed_at,
 
-        // 訂金支付資訊（優先用 GoMyPay 授權碼 external_transaction_id）
-        depositTransactionId: depositPayment?.external_transaction_id || depositPayment?.transaction_id || null,
+        // 訂金支付資訊（transaction_id 現已正確儲存 GoMyPay OrderID）
+        depositTransactionId: depositPayment?.transaction_id || null,
         depositPaymentMethod: depositPayment?.payment_method || null,
-        depositPaidAt: depositPayment?.created_at || null,
+        depositPaidAt: depositPayment?.confirmed_at || depositPayment?.created_at || null,
 
-        // 尾款支付資訊（優先用 GoMyPay 授權碼 external_transaction_id）
-        balanceTransactionId: balancePayment?.external_transaction_id || balancePayment?.transaction_id || null,
+        // 尾款支付資訊（transaction_id 現已正確儲存 GoMyPay OrderID）
+        balanceTransactionId: balancePayment?.transaction_id || null,
         balancePaymentMethod: balancePayment?.payment_method || null,
-        balancePaidAt: balancePayment?.created_at || null,
+        balancePaidAt: balancePayment?.confirmed_at || balancePayment?.created_at || null,
 
         // 客戶數位簽名
         signatureUrl: signature?.signature_url || null,
