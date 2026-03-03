@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
     if (bookingIds.length > 0) {
       const { data: payments } = await db.supabase
         .from('payments')
-        .select('id, booking_id, type, status, transaction_id, payment_method, amount, created_at')
+        .select('id, booking_id, type, status, transaction_id, external_transaction_id, payment_method, amount, created_at')
         .in('booking_id', bookingIds)
         .eq('status', 'completed');
 
@@ -233,13 +233,13 @@ export async function GET(request: NextRequest) {
         policyAgreed: booking.policy_agreed,
         policyAgreedAt: booking.policy_agreed_at,
 
-        // 訂金支付資訊
-        depositTransactionId: depositPayment?.transaction_id || null,
+        // 訂金支付資訊（優先用 GoMyPay 授權碼 external_transaction_id）
+        depositTransactionId: depositPayment?.external_transaction_id || depositPayment?.transaction_id || null,
         depositPaymentMethod: depositPayment?.payment_method || null,
         depositPaidAt: depositPayment?.created_at || null,
 
-        // 尾款支付資訊
-        balanceTransactionId: balancePayment?.transaction_id || null,
+        // 尾款支付資訊（優先用 GoMyPay 授權碼 external_transaction_id）
+        balanceTransactionId: balancePayment?.external_transaction_id || balancePayment?.transaction_id || null,
         balancePaymentMethod: balancePayment?.payment_method || null,
         balancePaidAt: balancePayment?.created_at || null,
 
