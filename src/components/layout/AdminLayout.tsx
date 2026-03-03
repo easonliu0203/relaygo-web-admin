@@ -45,6 +45,7 @@ const menuItems = [
       { key: '/orders/pending', label: '待處理訂單' },
       { key: '/orders/active', label: '進行中訂單' },
       { key: '/orders/completed', label: '已完成訂單' },
+      { key: '/orders/gomypay-billing', label: 'GOMYPAY 請款報表' },
       { key: '/orders/create-test', label: '封測訂單測試' },
     ],
   },
