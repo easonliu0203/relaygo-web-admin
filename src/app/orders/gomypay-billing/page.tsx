@@ -43,18 +43,22 @@ function DepositReceiptBlock({ order }: { order: any }) {
         訂金收據
       </Title>
       <Descriptions size="small" column={3} bordered>
+        {/* 訂單資訊 */}
         <Descriptions.Item label="訂單編號">{order.bookingNumber || '-'}</Descriptions.Item>
         <Descriptions.Item label="預約日期">{order.scheduledDate || '-'}</Descriptions.Item>
         <Descriptions.Item label="預約時間">{order.scheduledTime || '-'}</Descriptions.Item>
 
+        {/* 客戶資訊 */}
         <Descriptions.Item label="客戶姓名">{customer.name || '-'}</Descriptions.Item>
         <Descriptions.Item label="客戶 Email">{customer.email || '-'}</Descriptions.Item>
         <Descriptions.Item label="客戶電話">{customer.phone || '-'}</Descriptions.Item>
 
+        {/* 服務詳情 */}
         <Descriptions.Item label="車型">{vehicleTypeLabel(order.vehicleType)}</Descriptions.Item>
         <Descriptions.Item label="時長">{order.durationHours ? `${order.durationHours} 小時` : '-'}</Descriptions.Item>
         <Descriptions.Item label="統一編號">{order.taxId || '-'}</Descriptions.Item>
 
+        {/* 費用明細 */}
         <Descriptions.Item label="基本費用">
           {pricing.basePrice != null ? <Text strong>NT$ {Number(pricing.basePrice).toLocaleString()}</Text> : '-'}
         </Descriptions.Item>
@@ -76,17 +80,18 @@ function DepositReceiptBlock({ order }: { order: any }) {
           ) : '-'}
         </Descriptions.Item>
 
-        <Descriptions.Item label="訂金交易編號" span={2}>
-          {order.depositTransactionId || order.transactionId || '-'}
+        {/* 支付資訊 */}
+        <Descriptions.Item label="交易編號" span={2}>
+          <Text code>{order.depositTransactionId || '-'}</Text>
         </Descriptions.Item>
-        <Descriptions.Item label="訂金支付日期">
-          {order.depositPaidAt
-            ? dayjs(order.depositPaidAt).format('YYYY-MM-DD HH:mm')
-            : order.paymentDate || '-'}
+        <Descriptions.Item label="支付方式">
+          {order.depositPaymentMethod || '-'}
         </Descriptions.Item>
 
-        <Descriptions.Item label="支付方式" span={3}>
-          {order.paymentMethod || '-'}
+        <Descriptions.Item label="支付日期" span={3}>
+          {order.depositPaidAt
+            ? dayjs(order.depositPaidAt).format('YYYY-MM-DD HH:mm:ss')
+            : '-'}
         </Descriptions.Item>
       </Descriptions>
     </div>
@@ -99,11 +104,19 @@ function FullReceiptBlock({ order }: { order: any }) {
   const customer = order.customer || {};
   const driver = order.driver || {};
 
+  const balanceAmount = pricing.balanceAmount != null
+    ? Number(pricing.balanceAmount)
+    : (pricing.totalAmount != null && pricing.depositAmount != null
+      ? Number(pricing.totalAmount) - Number(pricing.depositAmount)
+      : null);
+
   return (
-    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <Title level={5} style={{ color: '#1677ff', marginBottom: 12 }}>
+    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+      <Title level={5} style={{ color: '#1677ff', marginBottom: 4 }}>
         完整收據
       </Title>
+
+      {/* 訂單 / 客戶 / 服務 */}
       <Descriptions size="small" column={3} bordered>
         <Descriptions.Item label="訂單編號">{order.bookingNumber || '-'}</Descriptions.Item>
         <Descriptions.Item label="預約日期">{order.scheduledDate || '-'}</Descriptions.Item>
@@ -124,7 +137,10 @@ function FullReceiptBlock({ order }: { order: any }) {
             <Descriptions.Item label="車牌號碼">{driver.vehiclePlate || '-'}</Descriptions.Item>
           </>
         )}
+      </Descriptions>
 
+      {/* 費用明細 */}
+      <Descriptions size="small" column={3} bordered title="費用明細">
         <Descriptions.Item label="基本費用">
           {pricing.basePrice != null ? `NT$ ${Number(pricing.basePrice).toLocaleString()}` : '-'}
         </Descriptions.Item>
@@ -143,13 +159,9 @@ function FullReceiptBlock({ order }: { order: any }) {
         </Descriptions.Item>
 
         <Descriptions.Item label="尾款">
-          {pricing.balanceAmount != null ? (
+          {balanceAmount != null ? (
             <Text strong style={{ color: '#1677ff' }}>
-              NT$ {Number(pricing.balanceAmount).toLocaleString()}
-            </Text>
-          ) : pricing.totalAmount != null && pricing.depositAmount != null ? (
-            <Text strong style={{ color: '#1677ff' }}>
-              NT$ {(Number(pricing.totalAmount) - Number(pricing.depositAmount)).toLocaleString()}
+              NT$ {balanceAmount.toLocaleString()}
             </Text>
           ) : '-'}
         </Descriptions.Item>
@@ -159,44 +171,90 @@ function FullReceiptBlock({ order }: { order: any }) {
             : '-'}
         </Descriptions.Item>
         <Descriptions.Item label="小費">
-          {pricing.tip && Number(pricing.tip) > 0
-            ? `NT$ ${Number(pricing.tip).toLocaleString()}`
+          {pricing.tipAmount && Number(pricing.tipAmount) > 0
+            ? `NT$ ${Number(pricing.tipAmount).toLocaleString()}`
             : '-'}
         </Descriptions.Item>
 
-        <Descriptions.Item label="總金額">
+        <Descriptions.Item label="總金額" span={3}>
           <Text strong style={{ color: '#389e0d', fontSize: 15 }}>
             NT$ {Number(pricing.totalAmount || 0).toLocaleString()}
           </Text>
         </Descriptions.Item>
-        <Descriptions.Item label="尾款交易編號">
-          {order.balanceTransactionId || '-'}
+      </Descriptions>
+
+      {/* 支付資訊 */}
+      <Descriptions size="small" column={3} bordered title="支付資訊">
+        <Descriptions.Item label="交易編號" span={2}>
+          <Text code>{order.balanceTransactionId || '-'}</Text>
         </Descriptions.Item>
-        <Descriptions.Item label="尾款支付日期">
+        <Descriptions.Item label="支付方式">
+          {order.balancePaymentMethod || '-'}
+        </Descriptions.Item>
+
+        <Descriptions.Item label="支付日期" span={3}>
           {order.balancePaidAt
-            ? dayjs(order.balancePaidAt).format('YYYY-MM-DD HH:mm')
+            ? dayjs(order.balancePaidAt).format('YYYY-MM-DD HH:mm:ss')
             : '-'}
         </Descriptions.Item>
 
-        <Descriptions.Item label="支付方式" span={2}>
-          {order.paymentMethod || '-'}
-        </Descriptions.Item>
-        <Descriptions.Item label="同意取消政策">
-          {order.policyAgreedAt
-            ? dayjs(order.policyAgreedAt).format('YYYY-MM-DD HH:mm')
-            : '-'}
-        </Descriptions.Item>
-
-        {order.signatureUrl && (
-          <Descriptions.Item label="客戶數位簽名" span={3}>
-            <img
-              src={order.signatureUrl}
-              alt="客戶簽名"
-              style={{ maxHeight: 80, border: '1px solid #d9d9d9', borderRadius: 4, background: '#fff', padding: 4 }}
-            />
+        {/* 取消政策同意 banner */}
+        {order.policyAgreed && (
+          <Descriptions.Item span={3} label="">
+            <div style={{
+              background: '#f0f8ff',
+              border: '1px solid #91caff',
+              borderLeft: '4px solid #1677ff',
+              borderRadius: 4,
+              padding: '8px 12px',
+            }}>
+              <Text style={{ color: '#1677ff', fontWeight: 600 }}>
+                ✓ 您已同意《RelayGo 取消政策》
+              </Text>
+            </div>
           </Descriptions.Item>
         )}
+
+        <Descriptions.Item label="授權時間" span={3}>
+          {order.policyAgreedAt
+            ? dayjs(order.policyAgreedAt).format('YYYY/MM/DD HH:mm')
+            : '-'}
+        </Descriptions.Item>
       </Descriptions>
+
+      {/* 客戶數位簽名 */}
+      {(order.signatureUrl || order.signatureBase64) && (
+        <Descriptions size="small" column={1} bordered title="客戶數位簽名">
+          <Descriptions.Item label="簽名圖像">
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
+              <img
+                src={order.signatureUrl || order.signatureBase64}
+                alt="客戶簽名"
+                style={{
+                  maxHeight: 100,
+                  maxWidth: '100%',
+                  border: '1px solid #d9d9d9',
+                  borderRadius: 4,
+                  background: '#fff',
+                  padding: 4,
+                }}
+              />
+              {order.signedAt && (
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    簽名時間：{dayjs(order.signedAt).format('YYYY-MM-DD HH:mm:ss')}
+                  </Text>
+                </div>
+              )}
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  此簽名用於確認支付尾款
+                </Text>
+              </div>
+            </div>
+          </Descriptions.Item>
+        </Descriptions>
+      )}
     </div>
   );
 }
@@ -264,13 +322,13 @@ function exportCsv(orders: any[]) {
       p.depositAmount != null ? Number(p.depositAmount) : '',
       balance,
       p.overtimeFee != null ? Number(p.overtimeFee) : '',
-      p.tip != null ? Number(p.tip) : '',
+      p.tipAmount != null ? Number(p.tipAmount) : '',
       p.totalAmount != null ? Number(p.totalAmount) : '',
-      o.depositTransactionId || o.transactionId || '',
+      o.depositTransactionId || '',
       o.depositPaidAt ? dayjs(o.depositPaidAt).format('YYYY-MM-DD HH:mm') : '',
       o.balanceTransactionId || '',
       o.balancePaidAt ? dayjs(o.balancePaidAt).format('YYYY-MM-DD HH:mm') : '',
-      o.paymentMethod || '',
+      o.balancePaymentMethod || o.depositPaymentMethod || '',
       o.taxId || '',
       d.name || '',
       d.phone || '',

@@ -125,6 +125,35 @@ export async function GET(request: NextRequest) {
       userMap.set(u.id, u);
     });
 
+    // 批次查詢支付記錄（訂金 & 尾款）
+    const bookingIds = (bookings || []).map((b: any) => b.id);
+    const depositPaymentMap = new Map();
+    const balancePaymentMap = new Map();
+    const signatureMap = new Map();
+
+    if (bookingIds.length > 0) {
+      const { data: payments } = await db.supabase
+        .from('payments')
+        .select('id, booking_id, type, status, transaction_id, payment_method, amount, created_at')
+        .in('booking_id', bookingIds)
+        .eq('status', 'completed');
+
+      payments?.forEach((p: any) => {
+        if (p.type === 'deposit') depositPaymentMap.set(p.booking_id, p);
+        if (p.type === 'balance') balancePaymentMap.set(p.booking_id, p);
+      });
+
+      // 批次查詢客戶數位簽名
+      const { data: signatures } = await db.supabase
+        .from('payment_signatures')
+        .select('booking_id, signature_url, signature_base64, signed_at')
+        .in('booking_id', bookingIds);
+
+      signatures?.forEach((s: any) => {
+        signatureMap.set(s.booking_id, s);
+      });
+    }
+
     // 格式化訂單資料
     const formattedBookings = (bookings || []).map((booking: any) => {
       // 獲取客戶資訊
@@ -135,6 +164,11 @@ export async function GET(request: NextRequest) {
       const driver = booking.driver_id ? userMap.get(booking.driver_id) : null;
       const driverProfile = booking.driver_id ? profileMap.get(booking.driver_id) : null;
       const driverInfo = booking.driver_id ? driverInfoMap.get(booking.driver_id) : null;
+
+      // 支付記錄
+      const depositPayment = depositPaymentMap.get(booking.id);
+      const balancePayment = balancePaymentMap.get(booking.id);
+      const signature = signatureMap.get(booking.id);
 
       return {
         id: booking.id,
@@ -162,7 +196,7 @@ export async function GET(request: NextRequest) {
           vehicleType: driverInfo?.vehicle_type,
           vehiclePlate: driverInfo?.vehicle_plate,
         } : null,
-        
+
         // 訂單詳情
         vehicleType: booking.vehicle_type,
         pickupLocation: booking.pickup_location,
@@ -170,21 +204,56 @@ export async function GET(request: NextRequest) {
         scheduledDate: booking.start_date,
         scheduledTime: booking.start_time,
         durationHours: booking.duration_hours,
-        
-        // 價格資訊
+        passengerCount: booking.passenger_count,
+        luggageCount: booking.luggage_count,
+        specialRequirements: booking.special_requirements,
+        requiresForeignLanguage: booking.requires_foreign_language,
+
+        // 價格資訊（完整欄位）
         pricing: {
           basePrice: booking.base_price,
+          originalPrice: booking.original_price,
+          discountAmount: booking.discount_amount,
+          finalPrice: booking.final_price,
           totalAmount: booking.total_amount,
           depositAmount: booking.deposit_amount,
+          balanceAmount: booking.balance_amount,
+          overtimeFee: booking.overtime_fee,
+          tipAmount: booking.tip_amount,
+          platformFee: booking.platform_fee,
+          driverEarning: booking.driver_earning,
         },
-        
+
+        // 優惠碼 & 稅務
+        promoCode: booking.promo_code,
+        taxId: booking.tax_id,
+        depositPaid: booking.deposit_paid,
+
+        // 取消政策同意
+        policyAgreed: booking.policy_agreed,
+        policyAgreedAt: booking.policy_agreed_at,
+
+        // 訂金支付資訊
+        depositTransactionId: depositPayment?.transaction_id || null,
+        depositPaymentMethod: depositPayment?.payment_method || null,
+        depositPaidAt: depositPayment?.created_at || null,
+
+        // 尾款支付資訊
+        balanceTransactionId: balancePayment?.transaction_id || null,
+        balancePaymentMethod: balancePayment?.payment_method || null,
+        balancePaidAt: balancePayment?.created_at || null,
+
+        // 客戶數位簽名
+        signatureUrl: signature?.signature_url || null,
+        signatureBase64: signature?.signature_base64 || null,
+        signedAt: signature?.signed_at || null,
+
         // 時間戳
         createdAt: booking.created_at,
         updatedAt: booking.updated_at,
-        
-        // 其他資訊
-        specialRequirements: booking.special_requirements,
-        requiresForeignLanguage: booking.requires_foreign_language,
+        cancelledAt: booking.cancelled_at,
+        cancellationReason: booking.cancellation_reason,
+        completedAt: booking.completed_at,
       };
     });
 
