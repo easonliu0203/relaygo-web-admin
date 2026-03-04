@@ -34,7 +34,7 @@ const { RangePicker } = DatePicker;
 const { Text, Title } = Typography;
 
 // 收據區塊 - 訂金收據
-function DepositReceiptBlock({ order }: { order: any }) {
+function DepositReceiptBlock({ order, hidePrivate }: { order: any; hidePrivate?: boolean }) {
   const pricing = order.pricing || {};
   const customer = order.customer || {};
 
@@ -51,8 +51,8 @@ function DepositReceiptBlock({ order }: { order: any }) {
 
         {/* 客戶資訊 */}
         <Descriptions.Item label="客戶姓名">{customer.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="客戶 Email">{customer.email || '-'}</Descriptions.Item>
-        <Descriptions.Item label="客戶電話">{customer.phone || '-'}</Descriptions.Item>
+        {!hidePrivate && <Descriptions.Item label="客戶 Email">{customer.email || '-'}</Descriptions.Item>}
+        {!hidePrivate && <Descriptions.Item label="客戶電話">{customer.phone || '-'}</Descriptions.Item>}
 
         {/* 服務詳情 */}
         <Descriptions.Item label="車型">{vehicleTypeLabel(order.vehicleType)}</Descriptions.Item>
@@ -100,7 +100,7 @@ function DepositReceiptBlock({ order }: { order: any }) {
 }
 
 // 收據區塊 - 完整收據
-function FullReceiptBlock({ order }: { order: any }) {
+function FullReceiptBlock({ order, hidePrivate }: { order: any; hidePrivate?: boolean }) {
   const pricing = order.pricing || {};
   const customer = order.customer || {};
   const driver = order.driver || {};
@@ -124,14 +124,14 @@ function FullReceiptBlock({ order }: { order: any }) {
         <Descriptions.Item label="預約時間">{order.scheduledTime || '-'}</Descriptions.Item>
 
         <Descriptions.Item label="客戶姓名">{customer.name || '-'}</Descriptions.Item>
-        <Descriptions.Item label="客戶 Email">{customer.email || '-'}</Descriptions.Item>
-        <Descriptions.Item label="客戶電話">{customer.phone || '-'}</Descriptions.Item>
+        {!hidePrivate && <Descriptions.Item label="客戶 Email">{customer.email || '-'}</Descriptions.Item>}
+        {!hidePrivate && <Descriptions.Item label="客戶電話">{customer.phone || '-'}</Descriptions.Item>}
 
         <Descriptions.Item label="車型">{vehicleTypeLabel(order.vehicleType)}</Descriptions.Item>
         <Descriptions.Item label="時長">{order.durationHours ? `${order.durationHours} 小時` : '-'}</Descriptions.Item>
         <Descriptions.Item label="統一編號">{order.taxId || '-'}</Descriptions.Item>
 
-        {driver.name && (
+        {driver.name && !hidePrivate && (
           <>
             <Descriptions.Item label="司機姓名">{driver.name}</Descriptions.Item>
             <Descriptions.Item label="司機電話">{driver.phone || '-'}</Descriptions.Item>
@@ -349,15 +349,15 @@ function exportCsv(orders: any[]) {
 
 // 展開列：含收據與「產生圖片」按鈕
 function ExpandedReceiptRow({ record }: { record: any }) {
-  const receiptRef = useRef<HTMLDivElement>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useState(false);
 
   const handleDownloadImage = useCallback(async () => {
-    if (!receiptRef.current) return;
+    if (!captureRef.current) return;
     setCapturing(true);
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(receiptRef.current, {
+      const canvas = await html2canvas(captureRef.current, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
@@ -386,10 +386,30 @@ function ExpandedReceiptRow({ record }: { record: any }) {
           產生圖片 (PNG)
         </Button>
       </div>
-      <div ref={receiptRef} style={{ background: '#ffffff', padding: 16 }}>
+
+      {/* 頁面顯示版（含完整資訊） */}
+      <div style={{ background: '#ffffff', padding: 16 }}>
         <DepositReceiptBlock order={record} />
         <div style={{ marginTop: 16 }}>
           <FullReceiptBlock order={record} />
+        </div>
+      </div>
+
+      {/* 圖片擷取版（隱藏敏感欄位，固定寬度確保排版一致） */}
+      <div
+        ref={captureRef}
+        style={{
+          position: 'absolute',
+          left: -99999,
+          top: 0,
+          width: 900,
+          background: '#ffffff',
+          padding: 24,
+        }}
+      >
+        <DepositReceiptBlock order={record} hidePrivate />
+        <div style={{ marginTop: 16 }}>
+          <FullReceiptBlock order={record} hidePrivate />
         </div>
       </div>
     </div>
