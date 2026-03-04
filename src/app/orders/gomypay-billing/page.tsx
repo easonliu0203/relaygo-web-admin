@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -25,6 +25,7 @@ import {
   FileTextOutlined,
   DollarOutlined,
   CalendarOutlined,
+  PictureOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ApiService } from '@/services/api';
@@ -346,6 +347,55 @@ function exportCsv(orders: any[]) {
   URL.revokeObjectURL(url);
 }
 
+// 展開列：含收據與「產生圖片」按鈕
+function ExpandedReceiptRow({ record }: { record: any }) {
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [capturing, setCapturing] = useState(false);
+
+  const handleDownloadImage = useCallback(async () => {
+    if (!receiptRef.current) return;
+    setCapturing(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(receiptRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `receipt_${record.bookingNumber || record.id}_${dayjs().format('YYYYMMDD_HHmm')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      message.success('圖片已下載');
+    } catch {
+      message.error('圖片產生失敗，請稍後再試');
+    } finally {
+      setCapturing(false);
+    }
+  }, [record]);
+
+  return (
+    <div className="space-y-3 py-2">
+      <div style={{ textAlign: 'right' }}>
+        <Button
+          icon={<PictureOutlined />}
+          loading={capturing}
+          onClick={handleDownloadImage}
+        >
+          產生圖片 (PNG)
+        </Button>
+      </div>
+      <div ref={receiptRef} style={{ background: '#ffffff', padding: 16 }}>
+        <DepositReceiptBlock order={record} />
+        <div style={{ marginTop: 16 }}>
+          <FullReceiptBlock order={record} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── 主頁面 ────────────────────────────────────────────────────────────────
 export default function GomypayBillingPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -394,10 +444,7 @@ export default function GomypayBillingPage() {
 
   // 展開列（顯示收據詳情）
   const expandedRowRender = (record: any) => (
-    <div className="space-y-4 py-2">
-      <DepositReceiptBlock order={record} />
-      <FullReceiptBlock order={record} />
-    </div>
+    <ExpandedReceiptRow record={record} />
   );
 
   // 表格欄位
