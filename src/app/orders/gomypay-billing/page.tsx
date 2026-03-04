@@ -131,6 +131,10 @@ function FullReceiptBlock({ order, hidePrivate }: { order: any; hidePrivate?: bo
         <Descriptions.Item label="時長">{order.durationHours ? `${order.durationHours} 小時` : '-'}</Descriptions.Item>
         <Descriptions.Item label="統一編號">{order.taxId || '-'}</Descriptions.Item>
 
+        <Descriptions.Item label="訂單狀態" span={3}>{statusTag(order.status)}</Descriptions.Item>
+        <Descriptions.Item label="上車地點" span={3}>{order.pickupLocation || '-'}</Descriptions.Item>
+        <Descriptions.Item label="下車地點" span={3}>{order.dropoffLocation || '-'}</Descriptions.Item>
+
         {driver.name && !hidePrivate && (
           <>
             <Descriptions.Item label="司機姓名">{driver.name}</Descriptions.Item>
