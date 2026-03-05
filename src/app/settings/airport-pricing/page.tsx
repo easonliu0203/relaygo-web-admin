@@ -110,6 +110,7 @@ interface AirportPricing {
   price_list_name: string;
   vehicle_type: string;
   region: string;
+  zone: string | null;
   tsa_price: number | null;
   tpe_price: number | null;
   rmq_price: number | null;
@@ -308,6 +309,7 @@ export default function AirportPricingPage() {
         price_list_name: record.price_list_name,
         vehicle_type:    normalizeVehicleType(record.vehicle_type),
         region:          record.region,
+        zone:            record.zone ?? '',
         tsa_price:       record.tsa_price,
         tpe_price:       record.tpe_price,
         rmq_price:       record.rmq_price,
@@ -330,6 +332,7 @@ export default function AirportPricingPage() {
         price_list_name: values.price_list_name,
         vehicle_type:    normalizeVehicleType(values.vehicle_type),
         region:          values.region,
+        zone:            values.zone || null,
         tsa_price:       values.tsa_price ?? null,
         tpe_price:       values.tpe_price ?? null,
         rmq_price:       values.rmq_price ?? null,
@@ -368,7 +371,16 @@ export default function AirportPricingPage() {
       key: 'region',
       width: 100,
       fixed: 'left' as const,
-      render: (v: string) => <Text strong>{v}</Text>,
+      render: (v: string, record: AirportPricing) => (
+        <div>
+          <Text strong>{v}</Text>
+          {record.zone && (
+            <div style={{ fontSize: 11, color: '#888', marginTop: 2, lineHeight: 1.4 }}>
+              {record.zone}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       title: '車型',
@@ -669,10 +681,14 @@ export default function AirportPricingPage() {
             </Col>
             <Col span={12}>
               <Form.Item label="地區" name="region" rules={[{ required: true, message: '請輸入地區' }]}>
-                <Input placeholder="例：雙北" />
+                <Input placeholder="例：新北A" />
               </Form.Item>
             </Col>
           </Row>
+
+          <Form.Item label="行政區範圍" name="zone" extra="填入此定價區涵蓋的行政區，以「、」分隔，例：三重、板橋、中和">
+            <Input.TextArea rows={2} placeholder="例：三重、新莊、八里、板橋、土城" />
+          </Form.Item>
 
           <Form.Item label="價目表名稱" name="price_list_name" rules={[{ required: true, message: '請輸入價目表名稱' }]}>
             <Input placeholder="例：機場接送五人座轎車價目表" />
