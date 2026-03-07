@@ -121,6 +121,23 @@ const menuItems = [
   },
 ];
 
+const MENU_OPEN_KEYS_KEY = 'admin_menu_open_keys';
+
+const DEFAULT_OPEN_KEYS = ['/orders', '/drivers', '/payments', '/reports', '/settings'];
+
+/** 根據 pathname 找出其所屬的父選單 key */
+function getParentKey(path: string): string | null {
+  for (const item of menuItems) {
+    if ('children' in item && item.children) {
+      const matched = item.children.some(
+        (c) => c.key === path || path.startsWith(c.key + '/')
+      );
+      if (matched) return item.key as string;
+    }
+  }
+  return null;
+}
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -129,6 +146,35 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { notifications, unreadCount } = useAppStore(selectNotificationState);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
+
+  // 受控選單展開 keys，從 localStorage 恢復
+  const [openKeys, setOpenKeys] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return DEFAULT_OPEN_KEYS;
+    try {
+      const stored = localStorage.getItem(MENU_OPEN_KEYS_KEY);
+      return stored ? JSON.parse(stored) : DEFAULT_OPEN_KEYS;
+    } catch {
+      return DEFAULT_OPEN_KEYS;
+    }
+  });
+
+  // 當路由切換時，確保對應父選單自動展開
+  useEffect(() => {
+    const parentKey = getParentKey(pathname);
+    if (parentKey) {
+      setOpenKeys((prev) => {
+        if (prev.includes(parentKey)) return prev;
+        const next = [...prev, parentKey];
+        localStorage.setItem(MENU_OPEN_KEYS_KEY, JSON.stringify(next));
+        return next;
+      });
+    }
+  }, [pathname]);
+
+  const handleOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
+    localStorage.setItem(MENU_OPEN_KEYS_KEY, JSON.stringify(keys));
+  };
 
   // 檢測螢幕尺寸
   useEffect(() => {
@@ -206,7 +252,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         theme="dark"
         mode="inline"
         selectedKeys={[pathname]}
-        defaultOpenKeys={['/orders', '/drivers', '/payments', '/reports', '/settings']}
+        openKeys={openKeys}
+        onOpenChange={handleOpenChange}
         items={menuItems}
         onClick={({ key }) => {
           router.push(key);
