@@ -207,25 +207,18 @@ export default function TourPackagesPage() {
   const savePackage = async (values: any) => {
     setSaving(true);
     try {
-      // 構建多語言資料
-      const name_i18n: Record<string, string> = {};
-      const description_i18n: Record<string, string> = {};
-      const country_i18n: Record<string, string> = {};
-      const region_i18n: Record<string, string> = {};
+      // 以 DB 現有翻譯為底，再用表單非空值覆蓋
+      // 避免未訪問的語言 Tab 在未掛載狀態下回傳空值，把既有翻譯清空
+      const name_i18n: Record<string, string> = { ...(editingPackage?.name_i18n || {}) };
+      const description_i18n: Record<string, string> = { ...(editingPackage?.description_i18n || {}) };
+      const country_i18n: Record<string, string> = { ...(editingPackage?.country_i18n || {}) };
+      const region_i18n: Record<string, string> = { ...(editingPackage?.region_i18n || {}) };
 
       SUPPORTED_LANGUAGES.forEach(lang => {
-        if (values.name_i18n?.[lang.code]) {
-          name_i18n[lang.code] = values.name_i18n[lang.code];
-        }
-        if (values.description_i18n?.[lang.code]) {
-          description_i18n[lang.code] = values.description_i18n[lang.code];
-        }
-        if (values.country_i18n?.[lang.code]) {
-          country_i18n[lang.code] = values.country_i18n[lang.code];
-        }
-        if (values.region_i18n?.[lang.code]) {
-          region_i18n[lang.code] = values.region_i18n[lang.code];
-        }
+        if (values.name_i18n?.[lang.code]) name_i18n[lang.code] = values.name_i18n[lang.code];
+        if (values.description_i18n?.[lang.code]) description_i18n[lang.code] = values.description_i18n[lang.code];
+        if (values.country_i18n?.[lang.code]) country_i18n[lang.code] = values.country_i18n[lang.code];
+        if (values.region_i18n?.[lang.code]) region_i18n[lang.code] = values.region_i18n[lang.code];
       });
 
       // 使用繁體中文作為預設 name 和 description
