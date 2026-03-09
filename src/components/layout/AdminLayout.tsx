@@ -113,6 +113,7 @@ const menuItems = [
       { key: '/settings/airport-pricing', label: '機場接送價格' },
       { key: '/settings/airport-region-definitions', label: '機場接送地區識別' },
       { key: '/settings/tour-packages', label: '旅遊方案' },
+      { key: '/settings/cross-region-rates', label: '跨區費率' },
       { key: '/settings/instant-ride-pricing', label: '即時派車價格' },
       { key: '/settings/revenue-share', label: '分成設定' },
       { key: '/settings/dispatch', label: '派單設定' },

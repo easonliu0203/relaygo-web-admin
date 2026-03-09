@@ -72,6 +72,7 @@ interface TourPackage {
   description_i18n?: Record<string, string>;
   country?: string;
   region?: string;
+  city?: string;
   country_i18n?: Record<string, string>;
   region_i18n?: Record<string, string>;
   is_active: boolean;
@@ -79,6 +80,27 @@ interface TourPackage {
   created_at: string;
   updated_at: string;
 }
+
+// 台灣縣市列表（對應後端 city_centers.ts）
+const TW_CITIES = [
+  { value: '台北', label: '台北', region: '北部' },
+  { value: '新北', label: '新北', region: '北部' },
+  { value: '基隆', label: '基隆', region: '北部' },
+  { value: '桃園', label: '桃園', region: '北部' },
+  { value: '新竹', label: '新竹', region: '北部' },
+  { value: '苗栗', label: '苗栗', region: '北部' },
+  { value: '台中', label: '台中', region: '中部' },
+  { value: '彰化', label: '彰化', region: '中部' },
+  { value: '南投', label: '南投', region: '中部' },
+  { value: '雲林', label: '雲林', region: '中部' },
+  { value: '嘉義', label: '嘉義', region: '中部' },
+  { value: '台南', label: '台南', region: '南部' },
+  { value: '高雄', label: '高雄', region: '南部' },
+  { value: '屏東', label: '屏東', region: '南部' },
+  { value: '宜蘭', label: '宜蘭', region: '東部' },
+  { value: '花蓮', label: '花蓮', region: '東部' },
+  { value: '台東', label: '台東', region: '東部' },
+];
 
 export default function TourPackagesPage() {
   const [form] = Form.useForm();
@@ -151,6 +173,7 @@ export default function TourPackagesPage() {
         display_order: pkg.display_order,
         country: pkg.country || 'TW',
         region: pkg.region || 'taipei',
+        city: pkg.city || undefined,
       });
 
       // 設置多語言欄位
@@ -216,6 +239,7 @@ export default function TourPackagesPage() {
         description_i18n,
         country: values.country || 'TW',
         region: values.region || 'taipei',
+        city: values.city || null,
         country_i18n,
         region_i18n,
         is_active: values.is_active,
@@ -474,6 +498,15 @@ export default function TourPackagesPage() {
       ),
     },
     {
+      title: '目的縣市',
+      dataIndex: 'city',
+      key: 'city',
+      width: 100,
+      render: (city: string) => city
+        ? <Tag color="cyan">{city}</Tag>
+        : <Text type="secondary">未設定</Text>,
+    },
+    {
       title: '方案描述',
       dataIndex: 'description',
       key: 'description',
@@ -661,6 +694,30 @@ export default function TourPackagesPage() {
                 tooltip="例如：taipei, taichung, kaohsiung, jiufen, sunmoonlake"
               >
                 <Input placeholder="例如：taipei, taichung" />
+              </Form.Item>
+
+              <Form.Item
+                label="目的縣市"
+                name="city"
+                tooltip="用於計算跨區接送費；若行程無固定城市可留空"
+                className="col-span-2"
+              >
+                <Select
+                  placeholder="請選擇目的縣市（選填）"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                >
+                  {['北部', '中部', '南部', '東部'].map(region => (
+                    <Select.OptGroup key={region} label={region}>
+                      {TW_CITIES.filter(c => c.region === region).map(c => (
+                        <Select.Option key={c.value} value={c.value} label={c.label}>
+                          {c.label}
+                        </Select.Option>
+                      ))}
+                    </Select.OptGroup>
+                  ))}
+                </Select>
               </Form.Item>
             </div>
           </Card>

@@ -75,9 +75,19 @@ interface VehiclePricing {
   overtime_rate: number;
   is_active: boolean;
   display_order: number;
+  country: string;
+  region: string;
   created_at: string;
   updated_at: string;
 }
+
+const REGION_OPTIONS = [
+  { value: 'default', label: '全國預設 (default)' },
+  { value: 'north',   label: '北部 (north) — 台北、新北、基隆、桃園、新竹、苗栗' },
+  { value: 'central', label: '中部 (central) — 台中、彰化、南投、雲林、嘉義' },
+  { value: 'south',   label: '南部 (south) — 台南、高雄、屏東' },
+  { value: 'east',    label: '東部 (east) — 花蓮、台東、宜蘭' },
+];
 
 const VEHICLE_TYPE_OPTIONS = [
   { value: 'XS', label: 'XS - Extra Small 特小型' },
@@ -298,6 +308,8 @@ export default function PricingSettingsPage() {
         overtime_rate: record.overtime_rate,
         display_order: record.display_order,
         is_active: record.is_active,
+        country: record.country || 'TW',
+        region: record.region || 'default',
       });
 
       // 設置多語言欄位
@@ -311,6 +323,8 @@ export default function PricingSettingsPage() {
       form.setFieldsValue({
         is_active: true,
         display_order: pricingList.length + 1,
+        country: 'TW',
+        region: 'default',
       });
     }
     setIsModalVisible(true);
@@ -347,6 +361,8 @@ export default function PricingSettingsPage() {
         overtime_rate: values.overtime_rate,
         display_order: values.display_order,
         is_active: values.is_active,
+        country: values.country || 'TW',
+        region: values.region || 'default',
       };
 
       if (editingRecord) {
@@ -461,6 +477,20 @@ export default function PricingSettingsPage() {
           </Space>
         );
       },
+    },
+    {
+      title: '定價地區',
+      dataIndex: 'region',
+      key: 'region',
+      width: 120,
+      render: (region: string) => {
+        const opt = REGION_OPTIONS.find(o => o.value === region);
+        const short = opt?.label.split(' ')[0] || region;
+        const color = region === 'default' ? 'default' : 'geekblue';
+        return <Tag color={color}>{short}</Tag>;
+      },
+      filters: REGION_OPTIONS.map(o => ({ text: o.label.split(' ')[0], value: o.value })),
+      onFilter: (value: any, record: VehiclePricing) => record.region === value,
     },
     {
       title: '時長',
@@ -590,6 +620,19 @@ export default function PricingSettingsPage() {
             >
               <Select placeholder="請選擇車型等級">
                 {VEHICLE_TYPE_OPTIONS.map(opt => (
+                  <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              label="定價地區"
+              name="region"
+              rules={[{ required: true, message: '請選擇定價地區' }]}
+              tooltip="選擇此方案適用的地區；若無特殊分區請選「全國預設」"
+            >
+              <Select>
+                {REGION_OPTIONS.map(opt => (
                   <Option key={opt.value} value={opt.value}>{opt.label}</Option>
                 ))}
               </Select>
