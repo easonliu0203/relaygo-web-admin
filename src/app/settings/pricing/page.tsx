@@ -83,10 +83,10 @@ interface VehiclePricing {
 
 const REGION_OPTIONS = [
   { value: 'default', label: '全國預設 (default)' },
-  { value: 'north',   label: '北部 (north) — 台北、新北、基隆、桃園、新竹、苗栗' },
-  { value: 'central', label: '中部 (central) — 台中、彰化、南投、雲林、嘉義' },
-  { value: 'south',   label: '南部 (south) — 台南、高雄、屏東' },
-  { value: 'east',    label: '東部 (east) — 花蓮、台東、宜蘭' },
+  { value: 'north',   label: '北部 (north) — 台北、新北、基隆、桃園、新竹、宜蘭' },
+  { value: 'central', label: '中部 (central) — 台中、苗栗、彰化、南投、雲林' },
+  { value: 'south',   label: '南部 (south) — 高雄、台南、嘉義、屏東' },
+  { value: 'east',    label: '東部 (east) — 花蓮、台東' },
 ];
 
 const VEHICLE_TYPE_OPTIONS = [
