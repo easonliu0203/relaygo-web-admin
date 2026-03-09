@@ -333,17 +333,14 @@ export default function PricingSettingsPage() {
   // 儲存方案
   const handleSave = async (values: any) => {
     try {
-      // 構建多語言資料
-      const vehicle_description_i18n: Record<string, string> = {};
-      const capacity_info_i18n: Record<string, string> = {};
+      // 以 DB 現有翻譯為底，再用表單非空值覆蓋
+      // 避免未訪問的語言 Tab 未掛載回傳空值，把既有翻譯清空
+      const vehicle_description_i18n: Record<string, string> = { ...(editingRecord?.vehicle_description_i18n || {}) };
+      const capacity_info_i18n: Record<string, string> = { ...(editingRecord?.capacity_info_i18n || {}) };
 
       SUPPORTED_LANGUAGES.forEach(lang => {
-        if (values.vehicle_description_i18n?.[lang.code]) {
-          vehicle_description_i18n[lang.code] = values.vehicle_description_i18n[lang.code];
-        }
-        if (values.capacity_info_i18n?.[lang.code]) {
-          capacity_info_i18n[lang.code] = values.capacity_info_i18n[lang.code];
-        }
+        if (values.vehicle_description_i18n?.[lang.code]) vehicle_description_i18n[lang.code] = values.vehicle_description_i18n[lang.code];
+        if (values.capacity_info_i18n?.[lang.code]) capacity_info_i18n[lang.code] = values.capacity_info_i18n[lang.code];
       });
 
       // 使用繁體中文作為預設 vehicle_description 和 capacity_info
