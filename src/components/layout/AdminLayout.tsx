@@ -108,7 +108,7 @@ const menuItems = [
     icon: <SettingOutlined />,
     label: '系統設定',
     children: [
-      { key: '/settings/pricing', label: '價格設定' },
+      { key: '/settings/pricing', label: '包車車型方案管理' },
       { key: '/settings/airport-vehicle-types', label: '機場接送車型' },
       { key: '/settings/airport-pricing', label: '機場接送價格' },
       { key: '/settings/airport-region-definitions', label: '機場接送地區識別' },
