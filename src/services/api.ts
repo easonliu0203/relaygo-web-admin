@@ -332,48 +332,9 @@ export class ApiService {
     }
   }
 
-  // Google 登入（使用 Firebase ID Token）
+  // 登入驗證（使用 Firebase ID Token → 後端驗證 admin claim）
   static async loginWithGoogle(idToken: string) {
-    // 檢查是否使用模擬認證
-    if (shouldUseMockAuth()) {
-      // 模擬 Google 登入成功
-      return {
-        success: true,
-        data: {
-          user: {
-            id: 'mock-admin-id',
-            email: 'admin@example.com',
-            name: 'Mock Admin',
-            role: 'admin',
-          },
-          token: 'mock-token-' + Date.now(),
-        },
-        message: 'Google 登入成功（模擬模式）',
-      };
-    }
-
-    try {
-      return await this.internalPost('/api/auth/admin/google-login', { idToken });
-    } catch (error: any) {
-      // 如果後端服務不可用，自動切換到模擬認證
-      if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
-        console.warn('後端服務不可用，切換到模擬認證模式');
-        return {
-          success: true,
-          data: {
-            user: {
-              id: 'mock-admin-id',
-              email: 'admin@example.com',
-              name: 'Mock Admin',
-              role: 'admin',
-            },
-            token: 'mock-token-' + Date.now(),
-          },
-          message: 'Google 登入成功（模擬模式）',
-        };
-      }
-      throw error;
-    }
+    return await this.internalPost('/api/auth/admin/google-login', { idToken });
   }
 
   static async logout() {
