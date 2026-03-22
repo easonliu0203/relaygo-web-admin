@@ -19,10 +19,10 @@ const fs = require('fs');
 
 // 載入 .env 檔案
 function loadEnv() {
-  // 優先載入 web-admin/.env.local，再載入 backend/.env
+  // 優先載入 backend/.env（有正確的 Firebase key），再載入 web-admin/.env.local
   const envPaths = [
-    path.join(__dirname, '..', '.env.local'),
     path.join(__dirname, '..', '..', 'backend', '.env'),
+    path.join(__dirname, '..', '.env.local'),
   ];
   for (const envPath of envPaths) {
   if (fs.existsSync(envPath)) {
@@ -49,27 +49,28 @@ loadEnv();
 function initAdmin() {
   if (getApps().length > 0) return getAuth();
 
-  // 支援兩種格式：
-  // 1. FIREBASE_SERVICE_ACCOUNT_KEY（完整 JSON）
-  // 2. FIREBASE_PROJECT_ID + FIREBASE_PRIVATE_KEY + FIREBASE_CLIENT_EMAIL（分開的）
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (raw) {
-    const serviceAccount = JSON.parse(raw);
-    if (serviceAccount.private_key) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    }
-    initializeApp({ credential: cert(serviceAccount) });
+  // 優先用分開的環境變數（backend/.env 格式，比較可靠）
+  // 若沒有再用 FIREBASE_SERVICE_ACCOUNT_KEY（完整 JSON）
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+  if (projectId && privateKey && clientEmail) {
+    initializeApp({ credential: cert({ projectId, privateKey, clientEmail }) });
   } else {
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    if (!projectId || !privateKey || !clientEmail) {
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (raw) {
+      const serviceAccount = JSON.parse(raw);
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      initializeApp({ credential: cert(serviceAccount) });
+    } else {
       console.error('❌ 缺少 Firebase 設定');
-      console.error('   需要 FIREBASE_SERVICE_ACCOUNT_KEY（完整 JSON）');
-      console.error('   或者 FIREBASE_PROJECT_ID + FIREBASE_PRIVATE_KEY + FIREBASE_CLIENT_EMAIL');
+      console.error('   需要 FIREBASE_PROJECT_ID + FIREBASE_PRIVATE_KEY + FIREBASE_CLIENT_EMAIL');
+      console.error('   或 FIREBASE_SERVICE_ACCOUNT_KEY（完整 JSON）');
       process.exit(1);
     }
-    initializeApp({ credential: cert({ projectId, privateKey, clientEmail }) });
   }
   return getAuth();
 }
