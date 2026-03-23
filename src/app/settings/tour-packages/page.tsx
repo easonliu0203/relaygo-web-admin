@@ -262,7 +262,6 @@ export default function TourPackagesPage() {
         name_i18n,
         description_i18n,
         country: values.country || 'TW',
-        region: values.region || 'taipei',
         city: values.city || null,
         country_i18n,
         region_i18n,
@@ -758,12 +757,22 @@ export default function TourPackagesPage() {
               </Form.Item>
 
               <Form.Item
-                label="地區代碼"
-                name="region"
-                rules={[{ required: true, message: '請輸入地區代碼' }]}
-                tooltip="例如：taipei, taichung, kaohsiung, jiufen, sunmoonlake"
+                label="定價地區"
+                tooltip="由目的縣市自動推導，無需手動填寫"
               >
-                <Input placeholder="例如：taipei, taichung" />
+                <Input
+                  disabled
+                  value={(() => {
+                    const city = form.getFieldValue('city');
+                    const map: Record<string, string> = {
+                      '台北':'north','新北':'north','基隆':'north','桃園':'north','新竹':'north','宜蘭':'north',
+                      '台中':'central','苗栗':'central','彰化':'central','南投':'central','雲林':'central',
+                      '高雄':'south','台南':'south','嘉義':'south','屏東':'south',
+                      '花蓮':'east','台東':'east',
+                    };
+                    return city ? (map[city] || 'default') : 'default';
+                  })()}
+                />
               </Form.Item>
 
               <Form.Item
