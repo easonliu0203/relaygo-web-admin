@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -34,7 +34,18 @@ import {
   TeamOutlined,
   TranslationOutlined,
   LoadingOutlined,
+  HolderOutlined,
 } from '@ant-design/icons';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { createClient } from '@supabase/supabase-js';
 import { FirebaseService } from '@/lib/firebase';
 
@@ -102,6 +113,26 @@ const DURATION_OPTIONS = [
   { value: 6, label: '6小時' },
   { value: 8, label: '8小時' },
 ];
+
+// Drag-sortable table row
+interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  'data-row-key': string;
+}
+
+function SortableRow(props: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props['data-row-key'],
+  });
+
+  const style: React.CSSProperties = {
+    ...props.style,
+    transform: CSS.Translate.toString(transform),
+    transition,
+    ...(isDragging ? { position: 'relative', zIndex: 9999, background: '#fafafa' } : {}),
+  };
+
+  return <tr {...props} ref={setNodeRef} style={style} {...attributes} {...listeners} />;
+}
 
 export default function PricingSettingsPage() {
   const [loading, setLoading] = useState(false);
@@ -393,15 +424,59 @@ export default function PricingSettingsPage() {
     loadPricingList();
   }, []);
 
+  // Drag sensor
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  // Handle drag end — reorder and save to Supabase
+  const onDragEnd = async ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = pricingList.findIndex((p) => p.id === active.id);
+    const newIndex = pricingList.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(pricingList, oldIndex, newIndex);
+    const withOrder = reordered.map((item, i) => ({ ...item, display_order: i + 1 }));
+    setPricingList(withOrder);
+
+    // Batch update to Supabase
+    try {
+      const updates = withOrder.map((item) =>
+        supabase
+          .from('vehicle_pricing')
+          .update({ display_order: item.display_order })
+          .eq('id', item.id)
+      );
+      const results = await Promise.all(updates);
+      const failed = results.filter((r) => r.error);
+
+      if (failed.length > 0) {
+        message.error('部分排序更新失敗');
+        loadPricingList();
+      } else {
+        message.success('排序已更新');
+      }
+    } catch {
+      message.error('排序更新失敗');
+      loadPricingList();
+    }
+  };
+
   // 表格欄位定義
   const columns = [
     {
-      title: '顯示順序',
+      title: '排序',
       dataIndex: 'display_order',
       key: 'display_order',
-      width: 100,
-      sorter: (a: VehiclePricing, b: VehiclePricing) => a.display_order - b.display_order,
-      render: (order: number) => <Tag color="blue">{order}</Tag>,
+      width: 80,
+      render: (order: number) => (
+        <Space>
+          <HolderOutlined style={{ cursor: 'grab', color: '#999' }} />
+          <Tag color="blue">{order}</Tag>
+        </Space>
+      ),
     },
     {
       title: '狀態',
@@ -578,14 +653,19 @@ export default function PricingSettingsPage() {
           </Space>
         }
       >
-        <Table
-          dataSource={pricingList}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          scroll={{ x: 1200 }}
-        />
+        <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
+          <SortableContext items={pricingList.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+            <Table
+              dataSource={pricingList}
+              columns={columns}
+              rowKey="id"
+              loading={loading}
+              components={{ body: { row: SortableRow } }}
+              pagination={false}
+              scroll={{ x: 1200 }}
+            />
+          </SortableContext>
+        </DndContext>
       </Card>
 
       {/* 新增/編輯 Modal */}
