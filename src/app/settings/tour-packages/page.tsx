@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -34,8 +34,19 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   TranslationOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  HolderOutlined
 } from '@ant-design/icons';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { FirebaseService } from '@/lib/firebase';
 
 const { Title, Text } = Typography;
@@ -101,6 +112,26 @@ const TW_CITIES = [
   { value: '花蓮', label: '花蓮', region: '東部' },
   { value: '台東', label: '台東', region: '東部' },
 ];
+
+// Drag-sortable table row
+interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  'data-row-key': string;
+}
+
+function SortableRow(props: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props['data-row-key'],
+  });
+
+  const style: React.CSSProperties = {
+    ...props.style,
+    transform: CSS.Translate.toString(transform),
+    transition,
+    ...(isDragging ? { position: 'relative', zIndex: 9999, background: '#fafafa' } : {}),
+  };
+
+  return <tr {...props} ref={setNodeRef} style={style} {...attributes} {...listeners} />;
+}
 
 export default function TourPackagesPage() {
   const [form] = Form.useForm();
@@ -467,16 +498,57 @@ export default function TourPackagesPage() {
     }
   };
 
+  // Drag sensor — need a small activation distance to distinguish from click
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  // Handle drag end — reorder and save to backend
+  const onDragEnd = async ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = packages.findIndex((p) => p.id === active.id);
+    const newIndex = packages.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(packages, oldIndex, newIndex);
+    // Assign new display_order based on position
+    const withOrder = reordered.map((pkg, i) => ({ ...pkg, display_order: i + 1 }));
+    setPackages(withOrder);
+
+    // Save to backend
+    try {
+      const orders = withOrder.map((pkg) => ({ id: pkg.id, display_order: pkg.display_order }));
+      const response = await fetch(`${API_URL}/api/tour-packages/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        message.success('排序已更新');
+      } else {
+        message.error(result.error || '排序更新失敗');
+        loadPackages(); // rollback
+      }
+    } catch {
+      message.error('排序更新失敗');
+      loadPackages(); // rollback
+    }
+  };
+
   // 表格列定義
   const columns = [
     {
-      title: '顯示順序',
+      title: '排序',
       dataIndex: 'display_order',
       key: 'display_order',
-      width: 100,
-      sorter: (a: TourPackage, b: TourPackage) => a.display_order - b.display_order,
+      width: 80,
       render: (order: number) => (
-        <Tag color="blue">{order}</Tag>
+        <Space>
+          <HolderOutlined style={{ cursor: 'grab', color: '#999' }} />
+          <Tag color="blue">{order}</Tag>
+        </Space>
       ),
     },
     {
@@ -608,17 +680,22 @@ export default function TourPackagesPage() {
           </Space>
         }
       >
-        <Table
-          dataSource={packages}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 個方案`,
+        <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
+          <SortableContext items={packages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+            <Table
+              dataSource={packages}
+              columns={columns}
+              rowKey="id"
+              loading={loading}
+              components={{ body: { row: SortableRow } }}
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 個方案`,
           }}
-        />
+            />
+          </SortableContext>
+        </DndContext>
       </Card>
 
       {/* 新增/編輯對話框 */}
