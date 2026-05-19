@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Card, Descriptions, Tag, Button, Space, Spin, message, Divider, Timeline, Empty } from 'antd';
+import { Card, Descriptions, Tag, Button, Space, Spin, message, Divider, Timeline, Empty, Table } from 'antd';
 import {
   ArrowLeftOutlined,
   UserOutlined,
@@ -11,6 +11,7 @@ import {
   ClockCircleOutlined,
   DollarOutlined,
   InfoCircleOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ApiService } from '@/services/api';
@@ -23,6 +24,8 @@ export default function OrderDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
+  const [driverChanges, setDriverChanges] = useState<any[]>([]);
+  const [loadingDriverChanges, setLoadingDriverChanges] = useState(false);
 
   // 載入訂單詳情
   const loadOrderDetail = async () => {
@@ -44,9 +47,30 @@ export default function OrderDetailPage() {
     }
   };
 
+  // 載入司機變更歷史（審計表）
+  const loadDriverChanges = async () => {
+    setLoadingDriverChanges(true);
+    try {
+      const res = await fetch(`/api/admin/bookings/${orderId}/driver-changes`);
+      const data = await res.json();
+      if (data.success) {
+        setDriverChanges(data.data || []);
+      } else {
+        console.warn('讀取司機變更歷史失敗:', data.error);
+        setDriverChanges([]);
+      }
+    } catch (error) {
+      console.error('❌ 載入司機變更歷史失敗:', error);
+      setDriverChanges([]);
+    } finally {
+      setLoadingDriverChanges(false);
+    }
+  };
+
   useEffect(() => {
     if (orderId) {
       loadOrderDetail();
+      loadDriverChanges();
     }
   }, [orderId]);
 
@@ -172,6 +196,81 @@ export default function OrderDetailPage() {
           <Empty description="尚未分配司機" />
         )}
       </Card>
+
+      {/* 司機變更歷史（審計表 booking_driver_changes） */}
+      {(loadingDriverChanges || driverChanges.length > 0) && (
+        <Card
+          title={<><SwapOutlined /> 司機變更歷史 <span className="text-xs text-gray-500 ml-2">（共 {driverChanges.length} 次）</span></>}
+        >
+          <Table
+            dataSource={driverChanges}
+            rowKey="id"
+            loading={loadingDriverChanges}
+            pagination={false}
+            size="small"
+            locale={{ emptyText: '此訂單尚無司機變更紀錄' }}
+            columns={[
+              {
+                title: '變更時間',
+                dataIndex: 'changedAt',
+                key: 'changedAt',
+                width: 170,
+                render: (v: string) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm:ss') : '-'),
+              },
+              {
+                title: '變更前狀態',
+                dataIndex: 'previousStatus',
+                key: 'previousStatus',
+                width: 120,
+                render: (v: string) => v ? <Tag>{v}</Tag> : '-',
+              },
+              {
+                title: '原司機',
+                key: 'previousDriver',
+                width: 160,
+                render: (_: any, r: any) => (
+                  r.previousDriver?.id ? (
+                    <div>
+                      <div>{r.previousDriver?.name || '(未知)'}</div>
+                      {r.previousDriver?.phone && (
+                        <div className="text-xs text-gray-500">{r.previousDriver.phone}</div>
+                      )}
+                    </div>
+                  ) : <span className="text-gray-400">-</span>
+                ),
+              },
+              {
+                title: '新司機',
+                key: 'newDriver',
+                width: 160,
+                render: (_: any, r: any) => (
+                  r.newDriver?.id ? (
+                    <div>
+                      <div>{r.newDriver?.name || '(未知)'}</div>
+                      {r.newDriver?.phone && (
+                        <div className="text-xs text-gray-500">{r.newDriver.phone}</div>
+                      )}
+                    </div>
+                  ) : <span className="text-gray-400">-</span>
+                ),
+              },
+              {
+                title: '更改原因',
+                dataIndex: 'reason',
+                key: 'reason',
+                render: (v: string) => <div className="whitespace-pre-wrap">{v || '-'}</div>,
+              },
+              {
+                title: '操作人',
+                dataIndex: 'changedBy',
+                key: 'changedBy',
+                width: 120,
+                render: (v: string | null) => v || <span className="text-gray-400">系統 / 未記錄</span>,
+              },
+            ]}
+          />
+        </Card>
+      )}
 
       {/* 司機位置追蹤 */}
       {order.driver && (
