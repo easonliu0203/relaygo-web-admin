@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/supabase';
+import { notifyBookingEvent } from '@/lib/bookingNotifier';
 
 /**
  * POST /api/admin/bookings/[id]/assign-driver
@@ -236,6 +237,14 @@ export async function POST(
       bookingId,
       driverId,
       status: 'matched'
+    });
+
+    // 推播通知司機「您有新派單」（不寫聊天室，matched 階段聊天室還沒建立）
+    notifyBookingEvent({
+      bookingId,
+      recipientUserId: driverId,
+      eventType: 'driver_assigned',
+      vars: { shortId: booking.booking_number || bookingId.slice(0, 8) },
     });
 
     return NextResponse.json({

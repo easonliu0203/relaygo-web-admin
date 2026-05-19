@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/supabase';
 import { getAdminFirestore } from '@/lib/firebaseAdmin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { notifyBookingEvent } from '@/lib/bookingNotifier';
 
 /**
  * PUT /api/admin/bookings/[id]/change-driver
@@ -327,6 +328,42 @@ export async function PUT(
       }
     } catch (firestoreError) {
       console.error('⚠️ 同步聊天室失敗（不影響主流程）:', firestoreError);
+    }
+
+    // 12. 推播通知：(a) 新司機派單 (b) 客戶告知司機已更換
+    //   新司機接到的是「您有新派單」（matched 狀態需要他確認接單）
+    //   客戶接到的是「司機已更換為 XXX」
+    {
+      const shortId = booking.booking_number || bookingId.slice(0, 8);
+
+      // 12a. 推給新司機
+      notifyBookingEvent({
+        bookingId,
+        recipientUserId: newDriverId,
+        eventType: 'driver_assigned',
+        vars: { shortId },
+      });
+
+      // 12b. 推給客戶（需要新司機姓名）
+      try {
+        const { data: profile } = await db.supabase
+          .from('user_profiles')
+          .select('first_name, last_name')
+          .eq('user_id', newDriverId)
+          .single();
+        const last = profile?.last_name?.trim() || '';
+        const first = profile?.first_name?.trim() || '';
+        const newDriverName = (last + first).trim() || '司機';
+
+        notifyBookingEvent({
+          bookingId,
+          recipientUserId: booking.customer_id,
+          eventType: 'driver_changed',
+          vars: { driverName: newDriverName, shortId },
+        });
+      } catch (err) {
+        console.error('⚠️ 推播 driver_changed 給客戶失敗（不影響主流程）:', err);
+      }
     }
 
     return NextResponse.json({
