@@ -11,7 +11,8 @@ export async function GET(
 ) {
   try {
     const bookingId = params.id;
-    const db = new DatabaseService();
+    // 用 service role 繞過 user_profiles 的 RLS（含 PII，anon 讀不到）
+    const db = new DatabaseService(true);
 
     const { data: changes, error } = await db.supabase
       .from('booking_driver_changes')
