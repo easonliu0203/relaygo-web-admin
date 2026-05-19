@@ -38,19 +38,29 @@ export async function GET(
       )
     );
 
+    // 司機姓名實際存在 user_profiles（first_name/last_name），phone 主要在 users
     let driverMap: Record<string, { name: string | null; phone: string | null }> = {};
     if (driverIds.length > 0) {
-      const { data: users, error: usersError } = await db.supabase
-        .from('users')
-        .select('id, name, phone')
-        .in('id', driverIds);
+      const [{ data: users, error: usersError }, { data: profiles, error: profilesError }] = await Promise.all([
+        db.supabase.from('users').select('id, phone').in('id', driverIds),
+        db.supabase.from('user_profiles').select('user_id, first_name, last_name, phone').in('user_id', driverIds),
+      ]);
 
-      if (usersError) {
-        console.error('⚠️ 讀取司機姓名失敗（仍回傳 ID）:', usersError);
-      } else {
-        driverMap = Object.fromEntries(
-          (users || []).map((u: any) => [u.id, { name: u.name, phone: u.phone }])
-        );
+      if (usersError) console.error('⚠️ 讀取 users.phone 失敗:', usersError);
+      if (profilesError) console.error('⚠️ 讀取 user_profiles 失敗:', profilesError);
+
+      const phoneByUser = Object.fromEntries((users || []).map((u: any) => [u.id, u.phone]));
+      const profileByUser = Object.fromEntries((profiles || []).map((p: any) => [p.user_id, p]));
+
+      for (const did of driverIds) {
+        const p = profileByUser[did];
+        const last = p?.last_name?.trim() || '';
+        const first = p?.first_name?.trim() || '';
+        const composed = (last + first).trim();  // zh-TW 慣例：姓在前
+        driverMap[did] = {
+          name: composed || null,
+          phone: phoneByUser[did] || p?.phone || null,
+        };
       }
     }
 
