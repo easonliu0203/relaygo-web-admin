@@ -314,11 +314,16 @@ export default function PendingOrdersPage() {
       return;
     }
 
-    const warningStatuses = ['driver_departed', 'driver_arrived'];
-    if (warningStatuses.includes(selectedBooking.status)) {
+    const warningLabel: Record<string, string> = {
+      driver_departed: '已出發',
+      driver_arrived: '已到達',
+      trip_started: '行程進行中',
+    };
+    const label = warningLabel[selectedBooking.status];
+    if (label) {
       Modal.confirm({
         title: '確認更改司機',
-        content: `此訂單司機已${selectedBooking.status === 'driver_departed' ? '出發' : '到達'}，確定要更改司機嗎？`,
+        content: `此訂單目前為「${label}」狀態，更換司機後訂單會重置為「已配對」，新司機需重新走 確認接單 → 出發 → 抵達 流程。確定要繼續嗎？`,
         okText: '確認更改',
         cancelText: '取消',
         onOk: async () => {

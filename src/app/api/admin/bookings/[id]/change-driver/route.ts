@@ -70,12 +70,14 @@ export async function PUT(
 
     // 2. 檢查訂單狀態是否允許更改司機
     // matched: 公司端已配對司機但司機尚未接受（突發狀況常見：司機沒回應、臨時取消等）
+    // trip_started: 行程進行中（車禍、車輛故障等突發狀況需要派新車）
     const allowedStatuses = [
       'matched',
       'assigned',
       'driver_confirmed',
       'driver_departed',
-      'driver_arrived'
+      'driver_arrived',
+      'trip_started'
     ];
 
     if (!allowedStatuses.includes(booking.status)) {
@@ -208,12 +210,16 @@ export async function PUT(
     }
 
     // 9. 更新訂單
+    // 換司機一律把狀態重置回 matched，讓新司機重新走 確認接單 → 出發 → 抵達 流程
+    // 避免新司機接到「已出發」「已到達」這種繼承自舊司機的假進度
+    // matched → driver_confirmed 時前端會自動為新司機建立新的聊天室
     const previousDriverId = booking.driver_id;
 
     const { data: updatedBooking, error: updateError } = await db.supabase
       .from('bookings')
       .update({
         driver_id: newDriverId,
+        status: 'matched',
         updated_at: new Date().toISOString(),
       })
       .eq('id', bookingId)
