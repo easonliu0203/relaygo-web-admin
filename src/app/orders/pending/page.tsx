@@ -60,6 +60,11 @@ export default function PendingOrdersPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [cancellingOrder, setCancellingOrder] = useState(false);
 
+  // 更改司機原因對話框
+  const [reasonModalVisible, setReasonModalVisible] = useState(false);
+  const [changeReason, setChangeReason] = useState('');
+  const [pendingNewDriverId, setPendingNewDriverId] = useState<string | null>(null);
+
   // 載入待處理訂單
   const loadOrders = async () => {
     setLoading(true);
@@ -291,11 +296,24 @@ export default function PendingOrdersPage() {
     }
   };
 
-  // 確認更改司機
-  const handleConfirmChangeDriver = async (newDriverId: string) => {
+  // 司機選定後 → 先要求填寫更改原因（供後續審計回溯）
+  const handleConfirmChangeDriver = (newDriverId: string) => {
     if (!selectedBooking) return;
+    setPendingNewDriverId(newDriverId);
+    setChangeReason('');
+    setReasonModalVisible(true);
+  };
 
-    // 檢查訂單狀態，如果司機已出發或已到達，顯示確認對話框
+  // 送出更改原因 → 視狀態決定是否再二次確認 → 執行
+  const handleSubmitChangeReason = () => {
+    if (!selectedBooking || !pendingNewDriverId) return;
+
+    const trimmed = changeReason.trim();
+    if (trimmed.length < 5) {
+      message.error('請輸入更改原因（至少 5 個字），以利後續回溯');
+      return;
+    }
+
     const warningStatuses = ['driver_departed', 'driver_arrived'];
     if (warningStatuses.includes(selectedBooking.status)) {
       Modal.confirm({
@@ -304,32 +322,35 @@ export default function PendingOrdersPage() {
         okText: '確認更改',
         cancelText: '取消',
         onOk: async () => {
-          await executeChangeDriver(newDriverId);
+          await executeChangeDriver(pendingNewDriverId, trimmed);
         },
       });
     } else {
-      await executeChangeDriver(newDriverId);
+      executeChangeDriver(pendingNewDriverId, trimmed);
     }
   };
 
   // 執行更改司機
-  const executeChangeDriver = async (newDriverId: string) => {
+  const executeChangeDriver = async (newDriverId: string, reason: string) => {
     setAssigningDriver(true);
     try {
       const response = await fetch(`/api/admin/bookings/${selectedBooking.id}/change-driver`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newDriverId }),
+        body: JSON.stringify({ newDriverId, reason }),
       });
 
       const data = await response.json();
 
       if (data.success) {
         message.success('成功更改司機');
+        setReasonModalVisible(false);
         setDriverModalVisible(false);
         setSelectedBooking(null);
         setIsChangingDriver(false);
-        loadOrders(); // 重新載入訂單列表
+        setPendingNewDriverId(null);
+        setChangeReason('');
+        loadOrders();
       } else {
         message.error(data.error || '更改司機失敗');
       }
@@ -925,6 +946,45 @@ export default function PendingOrdersPage() {
             placeholder="請輸入取消原因（必填）"
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
+            maxLength={500}
+            showCount
+          />
+        </div>
+      </Modal>
+
+      {/* 更改司機原因對話框（突發狀況回溯用） */}
+      <Modal
+        title="更改司機 - 請填寫原因"
+        open={reasonModalVisible}
+        onOk={handleSubmitChangeReason}
+        onCancel={() => {
+          setReasonModalVisible(false);
+          setPendingNewDriverId(null);
+          setChangeReason('');
+        }}
+        okText="確認更改"
+        cancelText="返回"
+        confirmLoading={assigningDriver}
+      >
+        {selectedBooking && (
+          <div className="mb-4">
+            <div className="text-sm space-y-1 p-3 bg-gray-50 rounded">
+              <div>訂單編號: {selectedBooking.bookingNumber}</div>
+              <div>目前狀態: {getStatusTag(selectedBooking.status)}</div>
+              <div>原司機: {selectedBooking.driver?.name || '未指派'}</div>
+            </div>
+          </div>
+        )}
+        <div>
+          <div className="mb-2">
+            <strong className="text-red-500">* 更改原因：</strong>
+            <span className="text-xs text-gray-500 ml-2">至少 5 個字，將寫入審計記錄以利後續回溯</span>
+          </div>
+          <TextArea
+            rows={4}
+            placeholder="例如：原司機臨時車輛故障無法服務、原司機未回應派單通知、客戶要求更換司機⋯⋯"
+            value={changeReason}
+            onChange={(e) => setChangeReason(e.target.value)}
             maxLength={500}
             showCount
           />

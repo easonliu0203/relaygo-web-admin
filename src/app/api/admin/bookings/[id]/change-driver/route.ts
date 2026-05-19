@@ -7,7 +7,8 @@ import { DatabaseService } from '@/lib/supabase';
  * 
  * 請求體:
  * - newDriverId: 新司機 ID
- * - reason: 更改原因（可選）
+ * - reason: 更改原因（必填，至少 5 字，用於審計回溯）
+ * - changedBy: 操作人識別（公司端帳號 email/name/id，可選）
  */
 export async function PUT(
   request: NextRequest,
@@ -16,19 +17,31 @@ export async function PUT(
   try {
     const bookingId = params.id;
     const body = await request.json();
-    const { newDriverId, reason } = body;
+    const { newDriverId, reason, changedBy } = body;
 
     console.log('📋 更改訂單司機:', {
       bookingId,
       newDriverId,
-      reason
+      reason,
+      changedBy
     });
 
     if (!newDriverId) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: '缺少新司機 ID' 
+          error: '缺少新司機 ID'
+        },
+        { status: 400 }
+      );
+    }
+
+    const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
+    if (trimmedReason.length < 5) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '請輸入更改原因（至少 5 個字），以利後續回溯'
         },
         { status: 400 }
       );
@@ -56,7 +69,9 @@ export async function PUT(
     }
 
     // 2. 檢查訂單狀態是否允許更改司機
+    // matched: 公司端已配對司機但司機尚未接受（突發狀況常見：司機沒回應、臨時取消等）
     const allowedStatuses = [
+      'matched',
       'assigned',
       'driver_confirmed',
       'driver_departed',
@@ -221,11 +236,30 @@ export async function PUT(
       bookingId,
       previousDriverId,
       newDriverId,
-      reason
+      reason: trimmedReason
     });
 
-    // TODO: 記錄司機變更歷史（可選）
-    // 可以創建一個 booking_driver_changes 表來記錄變更歷史
+    // 10. 寫入審計歷史表（失敗不擋主流程，但要留 log 讓人工補登）
+    const { error: auditError } = await db.supabase
+      .from('booking_driver_changes')
+      .insert({
+        booking_id: bookingId,
+        previous_driver_id: previousDriverId,
+        new_driver_id: newDriverId,
+        reason: trimmedReason,
+        previous_status: booking.status,
+        changed_by: typeof changedBy === 'string' && changedBy.trim() ? changedBy.trim() : null,
+      });
+
+    if (auditError) {
+      console.error('⚠️ 司機變更已套用，但審計記錄寫入失敗:', {
+        bookingId,
+        previousDriverId,
+        newDriverId,
+        reason: trimmedReason,
+        error: auditError.message,
+      });
+    }
 
     return NextResponse.json({
       success: true,
