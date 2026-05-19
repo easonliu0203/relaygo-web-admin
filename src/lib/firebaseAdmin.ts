@@ -2,9 +2,11 @@
 // 用於驗證 ID Token 和管理 custom claims
 import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 let _adminApp: App | null = null;
 let _adminAuth: Auth | null = null;
+let _adminFirestore: Firestore | null = null;
 
 function getAdminApp(): App {
   if (_adminApp) return _adminApp;
@@ -47,6 +49,12 @@ export function getAdminAuth(): Auth {
   if (_adminAuth) return _adminAuth;
   _adminAuth = getAuth(getAdminApp());
   return _adminAuth;
+}
+
+export function getAdminFirestore(): Firestore {
+  if (_adminFirestore) return _adminFirestore;
+  _adminFirestore = getFirestore(getAdminApp());
+  return _adminFirestore;
 }
 
 /**

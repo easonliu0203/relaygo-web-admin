@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/supabase';
+import { getAdminFirestore } from '@/lib/firebaseAdmin';
+import { Timestamp } from 'firebase-admin/firestore';
 
 /**
  * PUT /api/admin/bookings/[id]/change-driver
@@ -47,7 +49,8 @@ export async function PUT(
       );
     }
 
-    const db = new DatabaseService();
+    // 用 service role 才能讀 user_profiles（PII，有 RLS）
+    const db = new DatabaseService(true);
 
     // 1. 獲取訂單資訊
     const { data: booking, error: bookingError } = await db.supabase
@@ -112,12 +115,14 @@ export async function PUT(
       );
     }
 
-    // 5. 獲取新司機資訊
+    // 5. 獲取新司機資訊（含 firebase_uid 與姓名，用於後續同步聊天室）
     const { data: newDriver, error: newDriverError } = await db.supabase
       .from('users')
       .select(`
         id,
         role,
+        firebase_uid,
+        email,
         drivers!user_id (
           id,
           vehicle_type,
@@ -265,6 +270,63 @@ export async function PUT(
         reason: trimmedReason,
         error: auditError.message,
       });
+    }
+
+    // 11. 同步 Firestore 聊天室（若存在）
+    // 聊天室僅在 driver_confirmed 之後才會建立；matched 階段換司機通常還沒有聊天室
+    // 失敗只 log 不擋主流程
+    try {
+      const newDriverFirebaseUid = (newDriver as any).firebase_uid;
+      if (!newDriverFirebaseUid) {
+        console.warn('⚠️ 新司機沒有 firebase_uid，跳過聊天室同步:', newDriverId);
+      } else {
+        // 查新司機顯示姓名（user_profiles）
+        const { data: profile } = await db.supabase
+          .from('user_profiles')
+          .select('first_name, last_name')
+          .eq('user_id', newDriverId)
+          .single();
+
+        const last = profile?.last_name?.trim() || '';
+        const first = profile?.first_name?.trim() || '';
+        const newDriverName = (last + first).trim() || (newDriver as any).email?.split('@')[0] || '司機';
+
+        const firestore = getAdminFirestore();
+        const chatRoomRef = firestore.collection('chat_rooms').doc(bookingId);
+        const chatRoomSnap = await chatRoomRef.get();
+
+        if (chatRoomSnap.exists) {
+          const now = Timestamp.now();
+          const switchMessage = `本訂單司機已更換為「${newDriverName}」，請與新司機聯絡。`;
+
+          // 11a. 更新聊天室 driverId / driverName 並把最新訊息更新
+          await chatRoomRef.update({
+            driverId: newDriverFirebaseUid,
+            driverName: newDriverName,
+            lastMessage: switchMessage,
+            lastMessageTime: now,
+            updatedAt: now,
+          });
+
+          // 11b. 加一則系統訊息，雙方都看得到變更
+          await chatRoomRef.collection('messages').add({
+            senderId: 'system',
+            receiverId: 'all',
+            senderName: '系統',
+            receiverName: '所有人',
+            messageText: switchMessage,
+            translatedText: null,
+            createdAt: now,
+            readAt: null,
+          });
+
+          console.log('✅ 聊天室已同步為新司機:', { bookingId, newDriverFirebaseUid, newDriverName });
+        } else {
+          console.log('ℹ️ 聊天室尚未建立（多為 matched 換 matched 的情境），跳過同步');
+        }
+      }
+    } catch (firestoreError) {
+      console.error('⚠️ 同步聊天室失敗（不影響主流程）:', firestoreError);
     }
 
     return NextResponse.json({
