@@ -22,6 +22,19 @@ const SERVICE_TYPES = {
   CHARTER: 'charter',           // 包車旅遊
   INSTANT_RIDE: 'instant_ride'  // 即時派車
 } as const;
+
+// 車輛顏色色卡（hex 值，避免 i18n）
+// 訂單詳情顯示時直接渲染色塊，不顯示文字，所以不需要翻譯車色名稱
+const CAR_COLOR_SWATCHES: { hex: string; label: string }[] = [
+  { hex: '#1a1a1a', label: '黑' },
+  { hex: '#f5f5f5', label: '白' },
+  { hex: '#c0c0c0', label: '銀' },
+  { hex: '#6b7280', label: '灰' },
+  { hex: '#dc2626', label: '紅' },
+  { hex: '#1e3a8a', label: '藍' },
+  { hex: '#92400e', label: '棕' },
+  { hex: '#d4a017', label: '金' },
+];
 import {
   ArrowLeftOutlined,
   SaveOutlined,
@@ -30,6 +43,47 @@ import {
 import { ApiService } from '@/services/api';
 
 const { Option } = Select;
+
+/**
+ * 色卡選擇器（給 Ant Design Form 用，符合 value/onChange 介面）
+ * value: hex string ('' 代表未選)
+ */
+interface ColorSwatchPickerProps {
+  value?: string;
+  onChange?: (value: string) => void;
+}
+function ColorSwatchPicker({ value, onChange }: ColorSwatchPickerProps) {
+  return (
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+      {CAR_COLOR_SWATCHES.map((c) => {
+        const selected = value === c.hex;
+        return (
+          <button
+            type="button"
+            key={c.hex}
+            onClick={() => onChange?.(selected ? '' : c.hex)}
+            title={c.label}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: c.hex,
+              border: selected ? '3px solid #1890ff' : '1px solid #d9d9d9',
+              cursor: 'pointer',
+              padding: 0,
+              boxShadow: selected ? '0 0 0 2px rgba(24,144,255,0.2)' : 'none',
+              transition: 'all 0.15s',
+            }}
+            aria-label={c.label}
+          />
+        );
+      })}
+      {value && (
+        <span style={{ color: '#888', fontSize: 12, fontFamily: 'monospace' }}>{value}</span>
+      )}
+    </div>
+  );
+}
 
 export default function DriverEditPage() {
   const router = useRouter();
@@ -64,7 +118,6 @@ export default function DriverEditPage() {
           vehicleModel: response.data.vehicleModel || '',
           vehicleYear: response.data.vehicleYear || null,
           vehicleColor: response.data.vehicleColor || '',
-          vehicleCapacity: response.data.vehicleCapacity || null,
           // 基本資訊
           email: response.data.email,
           phone: response.data.phone,
@@ -269,33 +322,9 @@ export default function DriverEditPage() {
           <Form.Item
             label="車輛顏色"
             name="vehicleColor"
-            extra="例如：黑色、白色、銀色"
+            extra="客戶端訂單詳情會直接顯示這個色塊，所以不存中文名稱避免多語言翻譯問題"
           >
-            <Input placeholder="請輸入車輛顏色" allowClear />
-          </Form.Item>
-
-          <Form.Item
-            label="車輛載客量"
-            name="vehicleCapacity"
-            rules={[
-              {
-                validator: (_, value) => {
-                  if (value === undefined || value === null || value === '') return Promise.resolve();
-                  if (typeof value !== 'number' || value < 1 || value > 50) {
-                    return Promise.reject('載客量應為 1 - 50 人之間');
-                  }
-                  return Promise.resolve();
-                },
-              },
-            ]}
-            extra="不含駕駛的乘客座位數"
-          >
-            <InputNumber
-              placeholder="例如：4"
-              min={1}
-              max={50}
-              style={{ width: '100%' }}
-            />
+            <ColorSwatchPicker />
           </Form.Item>
 
           <Divider orientation="left">證照</Divider>

@@ -366,10 +366,25 @@ export default function DriverDetailPage() {
             {driver.vehicleYear || '未設定'}
           </Descriptions.Item>
           <Descriptions.Item label="車輛顏色" span={1}>
-            {driver.vehicleColor || '未設定'}
-          </Descriptions.Item>
-          <Descriptions.Item label="車輛載客量" span={1}>
-            {driver.vehicleCapacity || '未設定'}
+            {driver.vehicleColor ? (
+              <Space>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: driver.vehicleColor,
+                    border: '1px solid #d9d9d9',
+                    verticalAlign: 'middle',
+                  }}
+                  title={driver.vehicleColor}
+                />
+                <span style={{ color: '#888', fontFamily: 'monospace', fontSize: 12 }}>
+                  {driver.vehicleColor}
+                </span>
+              </Space>
+            ) : '未設定'}
           </Descriptions.Item>
         </Descriptions>
       </Card>
