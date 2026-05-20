@@ -158,10 +158,13 @@ export async function notifyBookingEvent(args: NotifyArgs): Promise<void> {
       android: {
         priority: 'high',
         notification: {
-          channelId: 'booking_events',
+          // 用 AndroidManifest 註冊的預設 channel，Firebase Messaging 會自動建立並帶聲音/震動。
+          // 若想為訂單事件單獨建一個 channel（如 'booking_events'），mobile 端要先在
+          // foreground_notification_service.dart 用 AndroidNotificationChannel 註冊好聲音設定，
+          // 否則 Android 會 fallback 出一個無聲版本。
+          channelId: 'high_importance_channel',
           priority: 'high',
           sound: 'default',
-          defaultSound: true,
           defaultVibrateTimings: true,
           defaultLightSettings: true,
           clickAction: 'FLUTTER_NOTIFICATION_CLICK',
