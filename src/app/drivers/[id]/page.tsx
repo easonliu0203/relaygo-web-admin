@@ -28,6 +28,7 @@ import {
   StarOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { ApiService } from '@/services/api';
@@ -216,13 +217,20 @@ export default function DriverDetailPage() {
   return (
     <div className="p-6">
       {/* 頁面標題 */}
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <Space>
           <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
             返回
           </Button>
           <h1 className="text-2xl font-bold m-0">司機詳情</h1>
         </Space>
+        <Button
+          type="primary"
+          icon={<EditOutlined />}
+          onClick={() => router.push(`/drivers/${driverId}/edit`)}
+        >
+          編輯司機
+        </Button>
       </div>
 
       {/* 統計卡片 */}

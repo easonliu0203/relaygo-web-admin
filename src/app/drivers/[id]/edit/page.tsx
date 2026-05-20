@@ -6,6 +6,7 @@ import {
   Card,
   Form,
   Input,
+  InputNumber,
   Select,
   Switch,
   Checkbox,
@@ -57,6 +58,14 @@ export default function DriverEditPage() {
           serviceTypes: response.data.serviceTypes || [SERVICE_TYPES.CHARTER, SERVICE_TYPES.INSTANT_RIDE],
           backgroundCheckStatus: response.data.backgroundCheckStatus || 'pending',
           vehicleType: response.data.vehicleType || '',
+          // 駕照與車輛欄位
+          licenseNumber: response.data.licenseNumber || '',
+          vehiclePlate: response.data.vehiclePlate || '',
+          vehicleModel: response.data.vehicleModel || '',
+          vehicleYear: response.data.vehicleYear || null,
+          vehicleColor: response.data.vehicleColor || '',
+          vehicleCapacity: response.data.vehicleCapacity || null,
+          // 基本資訊
           email: response.data.email,
           phone: response.data.phone,
           firstName: response.data.firstName,
@@ -214,6 +223,89 @@ export default function DriverEditPage() {
               <Option value="L">L — Large</Option>
               <Option value="XL">XL — Extra Large</Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="車牌號碼"
+            name="vehiclePlate"
+            extra="例如：ABC-1234"
+          >
+            <Input placeholder="請輸入車牌號碼" allowClear />
+          </Form.Item>
+
+          <Form.Item
+            label="車輛型號"
+            name="vehicleModel"
+            extra="例如：Toyota Alphard、Honda Odyssey"
+          >
+            <Input placeholder="請輸入車輛型號" allowClear />
+          </Form.Item>
+
+          <Form.Item
+            label="車輛年份"
+            name="vehicleYear"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (value === undefined || value === null || value === '') return Promise.resolve();
+                  const currentYear = new Date().getFullYear();
+                  if (typeof value !== 'number' || value < 1990 || value > currentYear + 1) {
+                    return Promise.reject(`請輸入 1990 - ${currentYear + 1} 之間的年份`);
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+            extra="出廠年份（西元）"
+          >
+            <InputNumber
+              placeholder="例如：2022"
+              min={1990}
+              max={new Date().getFullYear() + 1}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="車輛顏色"
+            name="vehicleColor"
+            extra="例如：黑色、白色、銀色"
+          >
+            <Input placeholder="請輸入車輛顏色" allowClear />
+          </Form.Item>
+
+          <Form.Item
+            label="車輛載客量"
+            name="vehicleCapacity"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (value === undefined || value === null || value === '') return Promise.resolve();
+                  if (typeof value !== 'number' || value < 1 || value > 50) {
+                    return Promise.reject('載客量應為 1 - 50 人之間');
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+            extra="不含駕駛的乘客座位數"
+          >
+            <InputNumber
+              placeholder="例如：4"
+              min={1}
+              max={50}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Divider orientation="left">證照</Divider>
+
+          <Form.Item
+            label="駕照號碼"
+            name="licenseNumber"
+            extra="司機的駕照證件號碼"
+          >
+            <Input placeholder="請輸入駕照號碼" allowClear />
           </Form.Item>
 
           <Divider orientation="left">基本資訊</Divider>
