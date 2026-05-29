@@ -451,6 +451,18 @@ export default function ServiceCasesPage() {
 
   const columns: ColumnsType<ServiceCase> = [
     {
+      title: '#',
+      key: 'index',
+      width: 56,
+      align: 'center',
+      fixed: 'left',
+      render: (_: unknown, __: ServiceCase, index: number) => (
+        <span style={{ color: '#888', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+          {index + 1}
+        </span>
+      ),
+    },
+    {
       title: '照片',
       dataIndex: 'photo_url',
       width: 120,
