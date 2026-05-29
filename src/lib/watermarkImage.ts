@@ -14,7 +14,7 @@ const MAX_HEIGHT = 1600;
 const JPEG_QUALITY = 0.85;
 
 const WATERMARK_TEXT = 'RelayGo  ·  relaygo.pro';
-const WATERMARK_OPACITY = 0.16;
+const WATERMARK_OPACITY = 0.28;
 const WATERMARK_ANGLE_DEG = -28;
 const CORNER_TEXT = '© relaygo.pro';
 
@@ -53,16 +53,16 @@ function computeFitSize(srcW: number, srcH: number): { w: number; h: number } {
 
 function drawDiagonalWatermark(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number) {
   // Pick font size relative to image dimensions; clamp for tiny/huge images
-  const fontSize = Math.max(18, Math.min(36, Math.round(canvasW / 38)));
-  const stepX = Math.round(fontSize * 13);
-  const stepY = Math.round(fontSize * 6.5);
+  const fontSize = Math.max(24, Math.min(52, Math.round(canvasW / 26)));
+  const stepX = Math.round(fontSize * 8.5);
+  const stepY = Math.round(fontSize * 4.5);
 
   ctx.save();
   ctx.globalAlpha = WATERMARK_OPACITY;
-  ctx.font = `600 ${fontSize}px -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif`;
+  ctx.font = `700 ${fontSize}px -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif`;
   ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-  ctx.lineWidth = Math.max(1, fontSize / 18);
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.lineWidth = Math.max(1.5, fontSize / 14);
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
 
@@ -90,13 +90,13 @@ function drawDiagonalWatermark(ctx: CanvasRenderingContext2D, canvasW: number, c
 }
 
 function drawCornerStamp(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number) {
-  const fontSize = Math.max(12, Math.min(20, Math.round(canvasW / 65)));
-  const paddingX = Math.round(fontSize * 0.8);
-  const paddingY = Math.round(fontSize * 0.45);
+  const fontSize = Math.max(16, Math.min(28, Math.round(canvasW / 48)));
+  const paddingX = Math.round(fontSize * 0.85);
+  const paddingY = Math.round(fontSize * 0.5);
   const margin = Math.round(fontSize * 0.8);
 
   ctx.save();
-  ctx.font = `600 ${fontSize}px -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif`;
+  ctx.font = `700 ${fontSize}px -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif`;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
 
@@ -106,7 +106,7 @@ function drawCornerStamp(ctx: CanvasRenderingContext2D, canvasW: number, canvasH
   const boxX = canvasW - margin - boxW;
   const boxY = canvasH - margin - boxH;
 
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   // Rounded rect
   const r = Math.round(boxH / 2);
   ctx.beginPath();
