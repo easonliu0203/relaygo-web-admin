@@ -48,6 +48,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { supabaseAdmin } from '@/lib/supabase';
+import { FirebaseService } from '@/lib/firebase';
 import { watermarkAndResize } from '@/lib/watermarkImage';
 
 const { Title, Text, Paragraph } = Typography;
@@ -240,6 +241,28 @@ export default function ServiceCasesPage() {
     }
   };
 
+  // Translate one piece of text via the Cloud Function (same pattern as tour-packages)
+  const translateField = async (text: string, targetLang: string, authToken: string): Promise<string> => {
+    const response = await fetch(TRANSLATE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken && { Authorization: `Bearer ${authToken}` }),
+      },
+      body: JSON.stringify({ text, targetLang }),
+    });
+    if (!response.ok) {
+      let errMsg = `HTTP ${response.status}`;
+      try {
+        const errData = await response.json();
+        errMsg = errData.error || errMsg;
+      } catch {}
+      throw new Error(errMsg);
+    }
+    const result = await response.json();
+    return result.translatedText || '';
+  };
+
   const handleAutoTranslate = async () => {
     const zhTW = form.getFieldValue(['captions', 'zh-TW']);
     if (!zhTW || !zhTW.trim()) {
@@ -249,26 +272,38 @@ export default function ServiceCasesPage() {
 
     setTranslating(true);
     try {
+      // Get Firebase auth token (translate function may require it)
+      let authToken = '';
+      try {
+        const user = (await FirebaseService.getCurrentUser()) as any;
+        if (user && typeof user.getIdToken === 'function') {
+          authToken = await user.getIdToken();
+        }
+      } catch (e) {
+        console.warn('取得 Firebase token 失敗（嘗試匿名翻譯）:', e);
+      }
+
       const targets = SUPPORTED_LANGUAGES.filter((l) => l.code !== 'zh-TW');
-      await Promise.all(
+      const results = await Promise.allSettled(
         targets.map(async (lang) => {
-          try {
-            const res = await fetch(TRANSLATE_API_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ text: zhTW, target: lang.code, source: 'zh-TW' }),
-            });
-            const data = await res.json();
-            const translated = data.translatedText || data.translation || data.text;
-            if (translated) {
-              form.setFieldValue(['captions', lang.code], translated);
-            }
-          } catch (e) {
-            console.warn(`翻譯 ${lang.code} 失敗:`, e);
+          const translated = await translateField(zhTW, lang.code, authToken);
+          if (translated) {
+            form.setFieldValue(['captions', lang.code], translated);
           }
+          return lang.code;
         })
       );
-      message.success('翻譯完成（請檢查並調整）');
+
+      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.length - succeeded;
+      if (failed === 0) {
+        message.success(`翻譯完成（${succeeded} 種語言，請檢查並調整）`);
+      } else if (succeeded === 0) {
+        const firstErr = results.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+        message.error(`翻譯失敗：${firstErr?.reason?.message || '未知錯誤'}`);
+      } else {
+        message.warning(`部分翻譯完成（成功 ${succeeded} / 失敗 ${failed}）`);
+      }
     } catch (err: any) {
       message.error(`翻譯失敗：${err.message || err}`);
     } finally {
