@@ -17,6 +17,7 @@ import {
   BellOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  PictureOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore, selectSidebarState, selectNotificationState } from '@/store/appStore';
@@ -83,6 +84,11 @@ const menuItems = [
       { key: '/reports/drivers', label: '司機績效' },
       { key: '/reports/customers', label: '客戶統計' },
     ],
+  },
+  {
+    key: '/service-cases',
+    icon: <PictureOutlined />,
+    label: '真實案例',
   },
   {
     key: '/marketing',
