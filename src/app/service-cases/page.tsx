@@ -45,6 +45,18 @@ const { TextArea } = Input;
 const BUCKET = 'service-cases';
 const TABLE = 'service_cases';
 const TRANSLATE_API_URL = 'https://asia-east1-ride-platform-f1676.cloudfunctions.net/translate';
+const REVALIDATE_URL = 'https://relaygo.pro/api/revalidate-cases';
+
+// Fire-and-forget: tells the public site to drop its cache so changes
+// show up within seconds instead of waiting for the 60s ISR window.
+async function triggerSiteRevalidate() {
+  try {
+    await fetch(REVALIDATE_URL, { method: 'POST', cache: 'no-store', keepalive: true });
+  } catch (e) {
+    // Cache will still expire within 60s anyway; don't block the user.
+    console.warn('revalidate ping failed (will still refresh within 60s):', e);
+  }
+}
 
 const SUPPORTED_LANGUAGES = [
   { code: 'zh-TW', name: '繁體中文', flag: '🇹🇼' },
@@ -267,6 +279,7 @@ export default function ServiceCasesPage() {
         message.success('案例已新增');
       }
 
+      triggerSiteRevalidate();
       closeModal();
       loadCases();
     } catch (err: any) {
@@ -294,6 +307,7 @@ export default function ServiceCasesPage() {
       const { error } = await supabaseAdmin.from(TABLE).delete().eq('id', item.id);
       if (error) throw error;
       message.success('案例已刪除');
+      triggerSiteRevalidate();
       loadCases();
     } catch (err: any) {
       console.error('刪除失敗:', err);
@@ -311,6 +325,7 @@ export default function ServiceCasesPage() {
       setCases((prev) =>
         prev.map((c) => (c.id === item.id ? { ...c, is_published: checked } : c))
       );
+      triggerSiteRevalidate();
       message.success(checked ? '已上架' : '已下架');
     } catch (err: any) {
       message.error(`更新失敗：${err.message || err}`);
