@@ -37,6 +37,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { supabaseAdmin } from '@/lib/supabase';
+import { watermarkAndResize } from '@/lib/watermarkImage';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -148,20 +149,23 @@ export default function ServiceCasesPage() {
       message.error('只能上傳圖片檔案');
       return false;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      message.error('檔案不可超過 10MB');
+    if (file.size > 20 * 1024 * 1024) {
+      message.error('原始檔案不可超過 20MB');
       return false;
     }
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      // 1. Resize to max 1600px wide + burn in RelayGo watermark (client-side Canvas)
+      const processed = await watermarkAndResize(file);
+
+      // 2. Upload the processed (watermarked + resized) JPEG to Storage
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
 
       const { error: uploadError } = await supabaseAdmin.storage
         .from(BUCKET)
-        .upload(filename, file, {
-          contentType: file.type,
+        .upload(filename, processed.blob, {
+          contentType: 'image/jpeg',
           cacheControl: '3600',
           upsert: false,
         });
@@ -172,7 +176,10 @@ export default function ServiceCasesPage() {
       const url = publicData.publicUrl;
 
       setPhotoUrl(url);
-      message.success('照片上傳成功');
+      const sizeKB = Math.round(processed.outputSize / 1024);
+      message.success(
+        `照片已加浮水印並上傳成功（${processed.width}×${processed.height}px, ${sizeKB} KB）`
+      );
       return true;
     } catch (err: any) {
       console.error('上傳失敗:', err);
@@ -463,8 +470,8 @@ export default function ServiceCasesPage() {
         </div>
 
         <Alert
-          message="隱私提醒"
-          description="上傳前請確認：所有人臉（含背景路人）已完整馬賽克、車牌已遮蔽。未取得當事人同意者一律打碼。"
+          message="隱私與版權保護"
+          description="① 上傳前請確認：所有人臉（含背景路人）已完整馬賽克、車牌已遮蔽。② 系統會自動為每張照片燒上 RelayGo 浮水印並縮至 max 1600px，無法事後關閉。"
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
@@ -492,7 +499,12 @@ export default function ServiceCasesPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={saveCase} preserve={false}>
-          <Form.Item label="案例照片" required tooltip="請上傳已馬賽克處理的照片，JPG/PNG/WebP，最大 10MB">
+          <Form.Item
+            label="案例照片"
+            required
+            tooltip="上傳後系統會自動加上 RelayGo 浮水印並縮為最大 1600px。請上傳已馬賽克的照片。"
+            extra="JPG / PNG / WebP / HEIC，原檔最大 20MB；上傳後會自動加浮水印並縮至 ≤1600px、轉為 JPEG。"
+          >
             <Upload
               accept="image/*"
               maxCount={1}
