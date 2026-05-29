@@ -33,9 +33,20 @@ import {
   TranslationOutlined,
   LoadingOutlined,
   GlobalOutlined,
+  HolderOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { supabaseAdmin } from '@/lib/supabase';
 import { watermarkAndResize } from '@/lib/watermarkImage';
 
@@ -84,6 +95,26 @@ interface ServiceCase {
   updated_at: string;
 }
 
+// Drag-sortable table row (long-press to activate)
+interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  'data-row-key': string;
+}
+function SortableRow(props: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props['data-row-key'],
+  });
+  const style: React.CSSProperties = {
+    ...props.style,
+    transform: CSS.Translate.toString(transform),
+    transition,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    ...(isDragging
+      ? { position: 'relative', zIndex: 9999, background: '#fafafa', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }
+      : {}),
+  };
+  return <tr {...props} ref={setNodeRef} style={style} {...attributes} {...listeners} />;
+}
+
 export default function ServiceCasesPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -97,6 +128,13 @@ export default function ServiceCasesPage() {
   const [translating, setTranslating] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewSrc, setPreviewSrc] = useState('');
+  const [reordering, setReordering] = useState(false);
+
+  // Long-press to activate drag (200ms hold + 5px tolerance) — leaves normal taps for buttons.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
 
   const loadCases = useCallback(async () => {
     setLoading(true);
@@ -315,6 +353,48 @@ export default function ServiceCasesPage() {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = cases.findIndex((c) => c.id === active.id);
+    const newIndex = cases.findIndex((c) => c.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    // Optimistic update with normalized sort_order (10, 20, 30, ...)
+    const reordered = arrayMove(cases, oldIndex, newIndex).map((c, idx) => ({
+      ...c,
+      sort_order: (idx + 1) * 10,
+    }));
+    setCases(reordered);
+
+    setReordering(true);
+    try {
+      // Only update the rows whose sort_order actually changed (minimize writes)
+      const changed = reordered.filter((c, idx) => {
+        const original = cases.find((o) => o.id === c.id);
+        return original && original.sort_order !== c.sort_order;
+      });
+
+      await Promise.all(
+        changed.map((c) =>
+          supabaseAdmin
+            .from(TABLE)
+            .update({ sort_order: c.sort_order, updated_at: new Date().toISOString() })
+            .eq('id', c.id)
+        )
+      );
+      message.success(`已更新 ${changed.length} 筆排序`);
+      triggerSiteRevalidate();
+    } catch (err: any) {
+      console.error('排序更新失敗:', err);
+      message.error(`排序更新失敗：${err.message || err}`);
+      loadCases(); // reload to recover from inconsistent state
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const togglePublished = async (item: ServiceCase, checked: boolean) => {
     try {
       const { error } = await supabaseAdmin
@@ -390,11 +470,14 @@ export default function ServiceCasesPage() {
       },
     },
     {
-      title: '排序',
+      title: (
+        <Tooltip title="長按任一列拖曳即可調整順序">
+          <span><HolderOutlined /> 排序</span>
+        </Tooltip>
+      ),
       dataIndex: 'sort_order',
-      width: 80,
+      width: 90,
       align: 'center',
-      sorter: (a, b) => a.sort_order - b.sort_order,
     },
     {
       title: '上架中',
@@ -492,14 +575,30 @@ export default function ServiceCasesPage() {
           style={{ marginBottom: 16 }}
         />
 
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={cases}
-          loading={loading}
-          pagination={{ pageSize: 20, showSizeChanger: true }}
-          scroll={{ x: 'max-content' }}
+        <Alert
+          message="長按任一列即可拖曳調整順序（行動裝置：按住約 0.25 秒後拖曳）"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
         />
+
+        <DndContext
+          sensors={sensors}
+          modifiers={[restrictToVerticalAxis]}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={cases.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <Table
+              rowKey="id"
+              columns={columns}
+              dataSource={cases}
+              loading={loading || reordering}
+              pagination={false}
+              scroll={{ x: 'max-content' }}
+              components={{ body: { row: SortableRow } }}
+            />
+          </SortableContext>
+        </DndContext>
       </Card>
 
       <Modal
