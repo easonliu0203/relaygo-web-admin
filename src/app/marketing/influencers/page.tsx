@@ -69,8 +69,13 @@ export default function InfluencersPage() {
       const result = await response.json();
 
       if (result.success) {
-        setInfluencers(result.data);
-        message.success(`成功載入 ${result.count} 個網紅`);
+        // ✅ 活動優惠碼（campaign）與推廣人共用同一張表，此頁只列真人推廣者，
+        //    活動碼請至「行銷 → 活動優惠」管理
+        const rows = (result.data || []).filter(
+          (r: { affiliate_type?: string }) => r.affiliate_type !== 'campaign'
+        );
+        setInfluencers(rows);
+        message.success(`成功載入 ${rows.length} 個網紅`);
       } else {
         message.error(result.error || '載入網紅列表失敗');
       }

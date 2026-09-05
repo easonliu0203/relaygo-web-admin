@@ -99,6 +99,7 @@ const menuItems = [
       { key: '/marketing/affiliates', label: '客戶推廣人管理' },
       { key: '/marketing/driver-affiliates', label: '司機推廣人管理' },
       { key: '/marketing/affiliate-links', label: '聯盟連結' },
+      { key: '/marketing/campaigns', label: '活動優惠' },
     ],
   },
   {
