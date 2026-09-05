@@ -39,6 +39,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.relaygo.pro
 
 const SERVICE_TYPES = {
   charter: '包車旅遊',
+  airport_transfer: '機場接送',
   instant_ride: '即時派車'
 };
 
