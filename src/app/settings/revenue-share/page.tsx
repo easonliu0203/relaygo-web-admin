@@ -114,6 +114,10 @@ export default function RevenueShareConfigsPage() {
   const [editingConfig, setEditingConfig] = useState<RevenueShareConfig | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string>('TW');
 
+  // 小費金流手續費率（平台不抽小費，此為金流商手續費）
+  const [tipFeePercent, setTipFeePercent] = useState<number>(3);
+  const [tipFeeSaving, setTipFeeSaving] = useState(false);
+
   // 篩選狀態
   const [filters, setFilters] = useState({
     country: undefined as string | undefined,
@@ -125,6 +129,10 @@ export default function RevenueShareConfigsPage() {
   useEffect(() => {
     loadConfigs();
   }, [filters]);
+
+  useEffect(() => {
+    loadTipFee();
+  }, []);
 
   // 載入配置列表
   const loadConfigs = async () => {
@@ -416,6 +424,37 @@ export default function RevenueShareConfigsPage() {
     }
   ];
 
+  const loadTipFee = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/tip-payment-fee`);
+      const result = await res.json();
+      if (result.success) setTipFeePercent(Number(result.data.percent));
+    } catch {
+      // 取不到就沿用畫面預設值
+    }
+  };
+
+  const saveTipFee = async () => {
+    setTipFeeSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/tip-payment-fee`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ percent: tipFeePercent }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        message.success(result.message || '小費手續費率已更新');
+      } else {
+        message.error(result.error || '更新失敗');
+      }
+    } catch {
+      message.error('更新失敗');
+    } finally {
+      setTipFeeSaving(false);
+    }
+  };
+
   return (
     <div className="p-6">
       <Card>
@@ -513,6 +552,40 @@ export default function RevenueShareConfigsPage() {
             showTotal: (total) => `共 ${total} 條配置`
           }}
         />
+      </Card>
+
+      {/* 小費設定：與分潤比例不同維度，另開區塊 */}
+      <Card className="mt-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold mb-2">小費設定</h2>
+          <p className="text-gray-600">
+            平台不從小費抽成。小費扣除金流商手續費後全額給司機，此處設定手續費率。
+          </p>
+        </div>
+
+        <Space align="end" size={16}>
+          <div>
+            <div className="mb-1 text-gray-700">金流手續費率</div>
+            <InputNumber
+              min={0}
+              max={100}
+              step={0.5}
+              value={tipFeePercent}
+              onChange={(v) => setTipFeePercent(Number(v ?? 0))}
+              addonAfter="%"
+              style={{ width: 160 }}
+            />
+          </div>
+          <Button type="primary" loading={tipFeeSaving} onClick={saveTipFee}>
+            儲存
+          </Button>
+        </Space>
+
+        <div className="mt-4 text-gray-500 text-sm leading-6">
+          <div>· 客人給小費 NT$1,000 → 司機實得 NT$ {Math.round(1000 * (1 - tipFeePercent / 100)).toLocaleString()}，平台 NT$0</div>
+          <div>· 費率會在記錄小費當下鎖進訂單快照，調整後<b>只影響之後的新小費</b>，已成立的訂單維持原費率</div>
+          <div>· 現金小費不經公司金流，系統一律以 0% 計算，不受此設定影響</div>
+        </div>
       </Card>
 
       {/* 新增/編輯 Modal */}

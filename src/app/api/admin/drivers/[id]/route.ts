@@ -69,6 +69,7 @@ export async function GET(
         created_at,
         driver_earning,
         tip_amount,
+        tip_after_fee,
         overtime_fee,
         customer_id
       `)
@@ -101,16 +102,13 @@ export async function GET(
     const totalTrips = bookings?.length || 0;
     const completedTrips = bookings?.filter((b: any) => b.status === 'completed').length || 0;
 
-    // 計算總收入（服務收入 = driver_earning + tip_amount × 0.97）
+    // 計算總收入
+    // ✅ driver_earning 已由 Supabase 觸發器算好，並且已包含小費淨額
+    //    （tip_after_fee = 小費 × (1 - 手續費率)，費率為訂單快照，現金小費為 0%）。
+    //    這裡不可再自行加上小費，否則會重複計算。
     const totalRevenue = bookings
       ?.filter((b: any) => b.status === 'completed')
-      .reduce((sum: number, b: any) => {
-        const driverEarning = b.driver_earning || 0;
-        const tipAmount = b.tip_amount || 0;
-        const tipAfterFee = tipAmount * 0.97; // 小費扣除 3% 金流手續費
-        const serviceIncome = driverEarning + tipAfterFee;
-        return sum + serviceIncome;
-      }, 0) || 0;
+      .reduce((sum: number, b: any) => sum + (b.driver_earning || 0), 0) || 0;
 
     // 格式化司機詳情
     const formattedDriver = {
@@ -154,10 +152,9 @@ export async function GET(
 
       // 最近訂單（快照：保留當時的財務資料，避免歷史資料被後臺調整影響）
       recentBookings: bookings?.slice(0, 10).map((b: any) => {
-        const driverEarning = b.driver_earning || 0;
-        const tipAmount = b.tip_amount || 0;
-        const tipAfterFee = tipAmount * 0.97; // 小費扣除 3% 金流手續費
-        const serviceIncome = driverEarning + tipAfterFee;
+        // ✅ driver_earning 已含小費淨額，不可重複相加
+        const serviceIncome = b.driver_earning || 0;
+        const tipAfterFee = b.tip_after_fee || 0;
 
         // 從預先查詢的客戶資料中獲取客戶名稱
         const customerProfile = customerProfiles[b.customer_id];
@@ -173,9 +170,9 @@ export async function GET(
           // 快照欄位
           customerName,
           overtimeFee: b.overtime_fee || 0,
-          tipAmount: tipAmount,
-          tipAfterFee: tipAfterFee,
-          driverEarning: driverEarning,
+          tipAmount: b.tip_amount || 0,
+          tipAfterFee: tipAfterFee,          // 司機實得小費（已扣金流手續費）
+          driverEarning: serviceIncome,      // 已含小費淨額
           serviceIncome: serviceIncome,
         };
       }) || [],
