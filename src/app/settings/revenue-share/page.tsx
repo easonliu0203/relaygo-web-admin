@@ -99,6 +99,7 @@ interface RevenueShareConfig {
   company_percentage: number;
   driver_percentage: number;
   company_base_percentage: number | null;
+  first_use_promoter_percentage: number | null;
   description: string | null;
   priority: number;
   is_active: boolean;
@@ -185,7 +186,8 @@ export default function RevenueShareConfigsPage() {
         service_type: 'charter',
         has_promo_code: false,
         is_active: true,
-        priority: 0
+        priority: 0,
+        first_use_promoter_percentage: 25
       });
       setSelectedCountry('TW');
     }
@@ -359,6 +361,23 @@ export default function RevenueShareConfigsPage() {
       ) : (
         <Tag color="default">-</Tag>
       )
+    },
+    {
+      title: '首單推廣人',
+      dataIndex: 'first_use_promoter_percentage',
+      key: 'first_use_promoter_percentage',
+      width: 110,
+      render: (percentage: number | null, record: RevenueShareConfig) =>
+        record.has_promo_code && percentage != null ? (
+          <div>
+            <Tag color="magenta">{percentage}%</Tag>
+            <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>
+              公司剩 {Number(record.company_base_percentage ?? record.company_percentage) - Number(percentage)}%
+            </div>
+          </div>
+        ) : (
+          <Tag color="default">-</Tag>
+        )
     },
     {
       title: '優先級',
@@ -757,6 +776,7 @@ export default function RevenueShareConfigsPage() {
           >
             {({ getFieldValue }) =>
               getFieldValue('has_promo_code') ? (
+                <>
                 <Form.Item
                   label={
                     <span>
@@ -795,6 +815,56 @@ export default function RevenueShareConfigsPage() {
                     placeholder="例如: 30 (表示 30%)"
                   />
                 </Form.Item>
+                <Form.Item
+                  label={
+                    <span>
+                      首單推廣人百分比 (%)
+                      <span style={{ color: '#999', fontSize: '12px', marginLeft: '8px' }}>
+                        (客戶推廣人首單)
+                      </span>
+                    </span>
+                  }
+                  name="first_use_promoter_percentage"
+                  dependencies={['company_base_percentage']}
+                  tooltip={{
+                    title: (
+                      <div>
+                        <div><strong>適用：</strong>客人第一張「完成」的客戶推廣人訂單（網紅、活動碼不適用）</div>
+                        <div style={{ marginTop: '8px' }}><strong>計算邏輯：</strong></div>
+                        <div>• 首單：推廣人拿此比例，取代推廣人自己的分潤設定</div>
+                        <div>• 公司實際收入 = 公司基準 − 此比例</div>
+                        <div>• 之後的訂單：推廣人照自己的設定（通常 5%）</div>
+                        <div style={{ marginTop: '8px' }}><strong>範例：</strong></div>
+                        <div>訂單 9,000 元，基準 30%，首單 25%</div>
+                        <div>→ 推廣人 2,250 元，公司 450 元，司機 70% 不變</div>
+                        <div style={{ marginTop: '8px' }}>修改只影響之後建立的訂單</div>
+                      </div>
+                    ),
+                    overlayStyle: { maxWidth: '400px' }
+                  }}
+                  rules={[
+                    { required: true, message: '請輸入首單推廣人百分比' },
+                    ({ getFieldValue }) => ({
+                      validator(_: unknown, value: number | null | undefined) {
+                        if (value === undefined || value === null) return Promise.resolve();
+                        const base = Number(getFieldValue('company_base_percentage') ?? getFieldValue('company_percentage') ?? 0);
+                        if (value < 0 || value > base) {
+                          return Promise.reject(new Error(`必須在 0 到公司基準 ${base}% 之間，否則公司會倒貼`));
+                        }
+                        return Promise.resolve();
+                      },
+                    }),
+                  ]}
+                >
+                  <InputNumber
+                    min={0}
+                    max={100}
+                    precision={0}
+                    style={{ width: '100%' }}
+                    placeholder="例如: 25 (表示 25%)"
+                  />
+                </Form.Item>
+                </>
               ) : null
             }
           </Form.Item>
