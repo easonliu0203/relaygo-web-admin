@@ -74,6 +74,8 @@ interface CommissionRecord {
   commission_type: 'fixed' | 'percent';
   commission_rate: number | null;
   commission_status: 'pending' | 'paid' | 'cancelled';
+  commission_reason: 'first_use' | 'repeat' | null;
+  booking_status: string | null;
   used_at: string;
 }
 
@@ -220,6 +222,31 @@ export default function AffiliateDetailPage() {
         } else {
           return <Tag color="purple">{record.commission_rate}% 分潤</Tag>;
         }
+      },
+    },
+    {
+      title: '原因',
+      dataIndex: 'commission_reason',
+      key: 'commission_reason',
+      render: (reason: string | null, record) => {
+        if (reason === 'first_use') {
+          return (
+            <div>
+              <Tag color="magenta">首單</Tag>
+              <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>APP 新用戶首次使用優惠碼</div>
+            </div>
+          );
+        }
+        if (reason === 'repeat') {
+          return <Tag>一般推薦</Tag>;
+        }
+        if (record.booking_status === 'cancelled' || record.booking_status === 'refunded') {
+          return <Text type="secondary">訂單已取消</Text>;
+        }
+        if (record.booking_status && record.booking_status !== 'completed') {
+          return <Tag color="default">訂單完成後判定</Tag>;
+        }
+        return <Text type="secondary">-</Text>;
       },
     },
     {
