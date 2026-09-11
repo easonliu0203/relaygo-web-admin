@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect } from 'react';
 import {
@@ -175,7 +176,7 @@ export default function InstantRidePricingPage() {
       if (filters.vehicle_type_code) queryParams.append('vehicle_type_code', filters.vehicle_type_code);
       if (filters.is_active !== undefined) queryParams.append('is_active', String(filters.is_active));
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/instant-ride-pricing?${queryParams}`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/instant-ride-pricing?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -257,7 +258,7 @@ export default function InstantRidePricingPage() {
         updated_by: 'admin'
       };
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -288,7 +289,7 @@ export default function InstantRidePricingPage() {
         ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
         : null;
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/instant-ride-pricing/${id}`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/instant-ride-pricing/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -317,7 +318,7 @@ export default function InstantRidePricingPage() {
         ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
         : null;
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/instant-ride-pricing/copy`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/instant-ride-pricing/copy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -351,7 +352,7 @@ export default function InstantRidePricingPage() {
         ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
         : null;
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/instant-ride-pricing/preview`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/instant-ride-pricing/preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect } from 'react';
 import {
@@ -96,7 +97,7 @@ export default function AffiliateDetailPage() {
     setLoading(true);
     try {
       // 載入推廣人基本資料
-      const affiliateResponse = await fetch(`${API_BASE_URL}/api/admin/influencers/${affiliateId}`);
+      const affiliateResponse = await adminFetch(`${API_BASE_URL}/api/admin/influencers/${affiliateId}`);
       const affiliateResult = await affiliateResponse.json();
 
       if (affiliateResult.success) {
@@ -106,7 +107,7 @@ export default function AffiliateDetailPage() {
       }
 
       // 載入推薦記錄
-      const referralsResponse = await fetch(`${API_BASE_URL}/api/admin/influencers/${affiliateId}/referrals`);
+      const referralsResponse = await adminFetch(`${API_BASE_URL}/api/admin/influencers/${affiliateId}/referrals`);
       const referralsResult = await referralsResponse.json();
 
       if (referralsResult.success) {
@@ -114,7 +115,7 @@ export default function AffiliateDetailPage() {
       }
 
       // 載入分潤記錄
-      const commissionsResponse = await fetch(`${API_BASE_URL}/api/admin/influencers/${affiliateId}/commissions`);
+      const commissionsResponse = await adminFetch(`${API_BASE_URL}/api/admin/influencers/${affiliateId}/commissions`);
       const commissionsResult = await commissionsResponse.json();
 
       if (commissionsResult.success) {

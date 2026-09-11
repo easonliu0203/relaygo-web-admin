@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { toast } from 'react-hot-toast';
 import Cookies from 'js-cookie';
+import { getAdminIdToken } from '@/lib/adminAuth';
 import { MockAuthService, shouldUseMockAuth } from './mockAuth';
 
 // API 基礎配置
@@ -26,9 +27,10 @@ const internalApiClient: AxiosInstance = axios.create({
 
 // 請求攔截器（外部 API）
 apiClient.interceptors.request.use(
-  (config: any) => {
-    // 添加認證 token
-    const token = Cookies.get('admin_token') || localStorage.getItem('admin_token');
+  async (config: any) => {
+    // 添加認證 token：每次取新鮮的 Firebase ID Token（backend 後台 API 只接受管理員，
+    // 存在 cookie 的那份 1 小時後就過期）
+    const token = await getAdminIdToken();
     if (token) {
       config.headers = {
         ...config.headers,

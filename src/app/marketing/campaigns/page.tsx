@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
@@ -114,7 +115,7 @@ export default function CampaignsPage() {
   const fetchCampaigns = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/campaigns`);
+      const res = await adminFetch(`${API_BASE_URL}/api/admin/campaigns`);
       const result = await res.json();
       if (result.success) {
         setCampaigns(result.data || []);
@@ -130,7 +131,7 @@ export default function CampaignsPage() {
 
   const fetchDriverPct = useCallback(async () => {
     try {
-      const res = await fetch(
+      const res = await adminFetch(
         `${API_BASE_URL}/api/admin/revenue-share-configs?country=TW&service_type=charter&has_promo_code=false`
       );
       const result = await res.json();
@@ -219,7 +220,7 @@ export default function CampaignsPage() {
         ? `${API_BASE_URL}/api/admin/campaigns/${editing.id}`
         : `${API_BASE_URL}/api/admin/campaigns`;
 
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method: editing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -244,7 +245,7 @@ export default function CampaignsPage() {
 
   const handleToggleActive = async (c: Campaign, active: boolean) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/campaigns/${c.id}`, {
+      const res = await adminFetch(`${API_BASE_URL}/api/admin/campaigns/${c.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: active }),
@@ -263,7 +264,7 @@ export default function CampaignsPage() {
 
   const handleDelete = async (c: Campaign) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/campaigns/${c.id}`, { method: 'DELETE' });
+      const res = await adminFetch(`${API_BASE_URL}/api/admin/campaigns/${c.id}`, { method: 'DELETE' });
       const result = await res.json();
       if (result.success) {
         message.success('活動已刪除');
@@ -281,7 +282,7 @@ export default function CampaignsPage() {
     setUsage(null);
     setUsageVisible(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/campaigns/${c.id}/usage`);
+      const res = await adminFetch(`${API_BASE_URL}/api/admin/campaigns/${c.id}/usage`);
       const result = await res.json();
       if (result.success) setUsage(result.data);
       else message.error(result.error || '載入使用狀況失敗');

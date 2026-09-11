@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect } from 'react';
 import {
@@ -149,7 +150,7 @@ export default function RevenueShareConfigsPage() {
       if (filters.has_promo_code !== undefined) queryParams.append('has_promo_code', String(filters.has_promo_code));
       if (filters.is_active !== undefined) queryParams.append('is_active', String(filters.is_active));
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/revenue-share-configs?${queryParams}`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/revenue-share-configs?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -207,7 +208,7 @@ export default function RevenueShareConfigsPage() {
 
       const method = editingConfig ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -242,7 +243,7 @@ export default function RevenueShareConfigsPage() {
         ? (document.cookie.split('; ').find(row => row.startsWith('admin_token='))?.split('=')[1] || localStorage.getItem('admin_token'))
         : null;
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/revenue-share-configs/${id}`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/revenue-share-configs/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -445,7 +446,7 @@ export default function RevenueShareConfigsPage() {
 
   const loadTipFee = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/tip-payment-fee`);
+      const res = await adminFetch(`${API_BASE_URL}/api/admin/tip-payment-fee`);
       const result = await res.json();
       if (result.success) setTipFeePercent(Number(result.data.percent));
     } catch {
@@ -456,7 +457,7 @@ export default function RevenueShareConfigsPage() {
   const saveTipFee = async () => {
     setTipFeeSaving(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/tip-payment-fee`, {
+      const res = await adminFetch(`${API_BASE_URL}/api/admin/tip-payment-fee`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ percent: tipFeePercent }),

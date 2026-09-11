@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect } from 'react';
 import {
@@ -65,7 +66,7 @@ export default function InfluencersPage() {
   const loadInfluencers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/influencers`);
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/influencers`);
       const result = await response.json();
 
       if (result.success) {
@@ -114,7 +115,7 @@ export default function InfluencersPage() {
   // 刪除網紅
   const handleDelete = async (id: string, name: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/influencers/${id}`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/influencers/${id}`, {
         method: 'DELETE',
       });
       const result = await response.json();
@@ -295,7 +296,7 @@ export default function InfluencersPage() {
 
       const method = editingInfluencer ? 'PATCH' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),

@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -66,7 +67,7 @@ export default function InfluencerPerformancePage() {
   const loadPerformance = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/influencers/${influencerId}/performance`);
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/influencers/${influencerId}/performance`);
       const result = await response.json();
 
       if (result.success) {

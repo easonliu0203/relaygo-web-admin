@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect } from 'react';
 import {
@@ -95,7 +96,7 @@ export default function DriverAffiliatesPage() {
       if (searchText) params.append('search', searchText);
       if (params.toString()) url += `?${params.toString()}`;
 
-      const response = await fetch(url);
+      const response = await adminFetch(url);
       const result = await response.json();
       if (result.success) {
         setAffiliates(result.data);
@@ -117,7 +118,7 @@ export default function DriverAffiliatesPage() {
   const handleReview = async (values: { status: string; review_notes: string }) => {
     if (!selectedAffiliate) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/driver-affiliates/${selectedAffiliate.id}/review`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/driver-affiliates/${selectedAffiliate.id}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
@@ -140,7 +141,7 @@ export default function DriverAffiliatesPage() {
   const handleEdit = async (values: any) => {
     if (!selectedAffiliate) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/driver-affiliates/${selectedAffiliate.id}`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/driver-affiliates/${selectedAffiliate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),

@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/adminAuth';
 
 import { useState, useEffect } from 'react';
 import {
@@ -93,7 +94,7 @@ export default function AffiliatesPage() {
   const loadAffiliates = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/influencers?affiliate_type=customer_affiliate`);
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/influencers?affiliate_type=customer_affiliate`);
       const result = await response.json();
 
       if (result.success) {
@@ -119,7 +120,7 @@ export default function AffiliatesPage() {
     if (!selectedAffiliate) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/affiliates/${selectedAffiliate.id}/review`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/affiliates/${selectedAffiliate.id}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,7 +151,7 @@ export default function AffiliatesPage() {
     if (!selectedAffiliate) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/influencers/${selectedAffiliate.id}`, {
+      const response = await adminFetch(`${API_BASE_URL}/api/admin/influencers/${selectedAffiliate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
